@@ -1,5 +1,5 @@
-name: "Deploy to Coolify"
-description: "Build and deploy Docker images to Coolify"
+name: "Deploy to Coolify via GitHub Container Registry"
+description: "Deploy Docker images to Coolify via GitHub Container Registry"
 author: "Assaf Arkin"
 
 inputs:

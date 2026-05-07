@@ -1,15 +1,25 @@
 {
-  "name": "coolify-deploy-action",
+  "name": "coolify-ghcr-deploy",
   "version": "1.0.0",
-  "description": "GitHub Action for deploying Docker images to Coolify",
+  "description": "Deploy Docker images to Coolify via GitHub Container Registry",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "coolify-ghcr-deploy": "./dist/cli.js"
+  },
   "scripts": {
-    "build": "ncc build src/index.ts --source-map --license licenses.txt",
-    "prepare": "husky install"
+    "build": "tsc",
+    "build:action": "ncc build src/index.ts --source-map --license licenses.txt",
+    "prepack": "pnpm build && pnpm build:action",
+    "prepublishOnly": "pnpm build && pnpm build:action",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
-    "github-action",
+    "github",
+    "container",
+    "registry",
     "coolify",
     "docker",
     "deploy"
@@ -17,12 +27,14 @@
   "author": "Assaf Arkin",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.10.1"
+    "@actions/core": "^1.10.1",
+    "commander": "^12.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "@vercel/ncc": "^0.38.1",
-    "husky": "^9.0.11",
-    "typescript": "^5.4.5"
+    "@vitest/coverage-v8": "^4.1.5",
+    "typescript": "^5.4.5",
+    "vitest": "^4.1.5"
   }
 }
