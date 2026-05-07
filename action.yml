@@ -1,0 +1,32 @@
+name: "Deploy to Coolify"
+description: "Build and deploy Docker images to Coolify"
+author: "Assaf Arkin"
+
+inputs:
+  coolify-url:
+    description: "Coolify instance URL (e.g., https://coolify.example.com)"
+    required: true
+  app-name:
+    description: "Coolify application name"
+    required: true
+  image:
+    description: "Docker image name (e.g., ghcr.io/org/app:latest)"
+    required: true
+  coolify-token:
+    description: "Coolify API token"
+    required: true
+  env-vars:
+    description: "Environment variables in dotenv format"
+    required: false
+
+outputs:
+  deployment-uuid:
+    description: "UUID of the deployment"
+
+runs:
+  using: "node20"
+  main: "dist/index.js"
+
+branding:
+  icon: "rocket"
+  color: "blue"
