@@ -8,6 +8,7 @@ Build and deploy Docker images to [Coolify](https://coolify.io/) via GitHub Cont
 - Pushes images to your container registry
 - Triggers Coolify deployments via API
 - Monitors deployment status with live updates
+- Verifies deployment health via configurable healthcheck endpoints
 - Handles errors gracefully with detailed error messages
 
 ## Prerequisites
@@ -36,14 +37,16 @@ coolify-ghcr-deploy --coolify-url https://coolify.example.com --app-name my-app 
 
 ### CLI Options
 
-| Option | Description | Required |
-|--------|-------------|----------|
-| `--coolify-url <url>` | Coolify instance URL (e.g., `https://coolify.example.com`) | Yes |
-| `--app-name <name>` | Application name in Coolify | Yes |
-| `--image <image>` | Docker image to deploy (e.g., `ghcr.io/org/app:latest`) | Yes |
-| `--coolify-token <token>` | Coolify API token | Yes* |
-| `--coolify-token-file <file>` | File containing Coolify API token | Yes* |
-| `--env-file <file>` | File containing environment variables for build | No |
+| Option                        | Description                                                | Required |
+| ----------------------------- | ---------------------------------------------------------- | -------- |
+| `--coolify-url <url>`         | Coolify instance URL (e.g., `https://coolify.example.com`) | Yes      |
+| `--app-name <name>`           | Application name in Coolify                                | Yes      |
+| `--image <image>`             | Docker image to deploy (e.g., `ghcr.io/org/app:latest`)    | Yes      |
+| `--coolify-token <token>`     | Coolify API token                                          | Yes\*    |
+| `--coolify-token-file <file>` | File containing Coolify API token                          | Yes\*    |
+| `--env-file <file>`           | File containing environment variables for build            | No       |
+| `--healthcheck-path <path>`   | Healthcheck path (default: `/`)                            | No       |
+| `--healthcheck-timeout <sec>` | Healthcheck timeout in seconds (default: 60)               | No       |
 
 \* Either `--coolify-token` or `--coolify-token-file` is required.
 
@@ -51,12 +54,14 @@ coolify-ghcr-deploy --coolify-url https://coolify.example.com --app-name my-app 
 
 All options have environment variable fallbacks:
 
-| Option | Environment Variable |
-|--------|---------------------|
-| `--coolify-url` | `COOLIFY_URL` |
-| `--app-name` | `APP_NAME` |
-| `--image` | `IMAGE` |
-| `--coolify-token` | `COOLIFY_TOKEN` |
+| Option                  | Environment Variable  |
+| ----------------------- | --------------------- |
+| `--coolify-url`         | `COOLIFY_URL`         |
+| `--app-name`            | `APP_NAME`            |
+| `--image`               | `IMAGE`               |
+| `--coolify-token`       | `COOLIFY_TOKEN`       |
+| `--healthcheck-path`    | `HEALTHCHECK_PATH`    |
+| `--healthcheck-timeout` | `HEALTHCHECK_TIMEOUT` |
 
 ### Examples
 
@@ -114,6 +119,20 @@ coolify-ghcr-deploy \
   --env-file .env.build
 ```
 
+#### Using --healthcheck-path and --healthcheck-timeout
+
+Verify the deployment with a custom healthcheck endpoint:
+
+```bash
+coolify-ghcr-deploy \
+  --coolify-url https://coolify.example.com \
+  --app-name my-app \
+  --image ghcr.io/org/app:latest \
+  --coolify-token $COOLIFY_TOKEN \
+  --healthcheck-path /api/health \
+  --healthcheck-timeout 120
+```
+
 ## GitHub Action Usage
 
 Add this action to your workflow:
@@ -128,22 +147,22 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Deploy to Coolify
         uses: assaf/coolify-ghcr-deploy@v1
         with:
@@ -159,19 +178,22 @@ jobs:
 
 ## Inputs
 
-| Input | Description | Required |
-|-------|-------------|----------|
-| `coolify-url` | Coolify instance URL (e.g., `https://coolify.example.com`) | Yes |
-| `app-name` | Coolify application name | Yes |
-| `image` | Docker image name (e.g., `ghcr.io/org/app:latest`) | Yes |
-| `coolify-token` | Coolify API token | Yes |
-| `env-vars` | Environment variables in dotenv format | No |
+| Input                 | Description                                                | Required | Default |
+| --------------------- | ---------------------------------------------------------- | -------- | ------- |
+| `coolify-url`         | Coolify instance URL (e.g., `https://coolify.example.com`) | Yes      |         |
+| `app-name`            | Coolify application name                                   | Yes      |         |
+| `image`               | Docker image name (e.g., `ghcr.io/org/app:latest`)         | Yes      |         |
+| `coolify-token`       | Coolify API token                                          | Yes      |         |
+| `env-vars`            | Environment variables in dotenv format                     | No       |         |
+| `healthcheck-path`    | Healthcheck path (default: `/`)                            | No       | `/`     |
+| `healthcheck-timeout` | Healthcheck timeout in seconds                             | No       | `60`    |
 
 ## Outputs
 
-| Output | Description |
-|--------|-------------|
-| `deployment-uuid` | UUID of the deployment in Coolify |
+| Output            | Description                                   |
+| ----------------- | --------------------------------------------- |
+| `deployment-uuid` | UUID of the deployment in Coolify             |
+| `healthcheck-url` | Full URL of the verified healthcheck endpoint |
 
 ## Environment Variables
 
@@ -200,6 +222,46 @@ env-vars: |
 3. **Push Image**: Pushes the image to your container registry
 4. **Start Deployment**: Triggers a deployment via Coolify API
 5. **Monitor Status**: Polls the deployment status until completion or failure
+6. **Verify Healthcheck**: Fetches application details, configures healthcheck if needed, and verifies the endpoint is responding
+
+## Healthcheck Verification
+
+After deployment completes, the action automatically verifies that your application is healthy by:
+
+1. **Fetching Application Details**: Retrieves the FQDN and healthcheck configuration from Coolify
+2. **Configuring Healthcheck**: If the healthcheck is disabled or the path differs from the configured path, it updates the configuration via the Coolify API
+3. **Polling Healthcheck Endpoint**: Makes HTTP requests to the healthcheck URL until it returns a successful response (2xx status code) or times out
+
+### Custom Healthcheck Path
+
+By default, the action uses the root path (`/`) for health checks. You can customize this:
+
+**CLI:**
+
+```bash
+coolify-ghcr-deploy --healthcheck-path /api/health --healthcheck-timeout 120
+```
+
+**GitHub Action:**
+
+```yaml
+- name: Deploy to Coolify
+  uses: assaf/coolify-ghcr-deploy@v1
+  with:
+    coolify-url: https://coolify.example.com
+    app-name: my-app
+    image: ghcr.io/org/app:latest
+    coolify-token: ${{ secrets.COOLIFY_TOKEN }}
+    healthcheck-path: /api/health
+    healthcheck-timeout: "120"
+```
+
+### Healthcheck Behavior
+
+- If the application's healthcheck is disabled, the action enables it with the specified path
+- If you don't specify a path and the healthcheck is enabled, the action uses the existing configured path
+- The action retries healthcheck requests every 3 seconds until success or timeout
+- Failed healthchecks (5xx, connection errors, etc.) trigger retries within the timeout period
 
 ## Error Handling
 
@@ -211,6 +273,7 @@ The action will fail fast on any error:
 - Coolify API errors
 - Deployment timeout (default: 600 seconds)
 - Failed deployment status
+- Healthcheck timeout (default: 60 seconds)
 
 ## Security Best Practices
 
@@ -235,7 +298,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Run tests
         run: npm ci && npm test
 
@@ -243,25 +306,25 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     permissions:
       contents: read
       packages: write
-    
+
     environment:
       name: production
       url: https://your-app.your-domain.com
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Deploy to Coolify
         uses: assaf/coolify-ghcr-deploy@v1
         with:
