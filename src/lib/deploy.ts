@@ -27,14 +27,13 @@ export async function findAppUUID({
 }): Promise<string> {
   logger.info(`Finding application UUID for "${appName}"...`);
 
-  const url = new URL("/api/v1/applications", coolifyURL);
-  const response = await fetch(url.toString(), {
+  const response = await fetch(new URL("/api/v1/applications", coolifyURL), {
     headers: { Authorization: `Bearer ${coolifyToken}` },
   });
 
   if (!response.ok) throw new Error(`Failed to find application: ${response.statusText}`);
 
-  const data = (await response.json()) as { uuid: string; name: string }[];
+  const data = (await response.json()) as { uuid: string; name: string; }[];
 
   const appUUID = data.find(({ name }) => name === appName)?.uuid;
   if (!appUUID) {
@@ -113,7 +112,7 @@ export async function startDeployment({
   url.searchParams.set("type", "application");
   url.searchParams.set("uuid", appUUID);
 
-  const response = await fetch(url.toString(), {
+  const response = await fetch(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${coolifyToken}` },
   });
@@ -121,7 +120,7 @@ export async function startDeployment({
   if (!response.ok) throw new Error(`Failed to trigger deployment: ${response.statusText}`);
 
   const { deployments } = (await response.json()) as {
-    deployments: { deployment_uuid: string }[] | undefined;
+    deployments: { deployment_uuid: string; }[] | undefined;
   };
 
   const deploymentUUID = deployments?.[0]?.deployment_uuid;
@@ -153,14 +152,13 @@ export async function pollDeploymentStatus({
   const timeoutMs = timeout * 1000;
 
   while (true) {
-    const url = new URL(`/api/v1/deployments/${deploymentUUID}`, coolifyURL);
-    const response = await fetch(url.toString(), {
+    const response = await fetch(new URL(`/api/v1/deployments/${deploymentUUID}`, coolifyURL), {
       headers: { Authorization: `Bearer ${coolifyToken}` },
     });
 
     if (!response.ok) throw new Error(`Failed to get deployment status: ${response.statusText}`);
 
-    const data = (await response.json()) as { status?: string };
+    const data = (await response.json()) as { status?: string; };
     const status = data.status ?? "unknown";
 
     if (status === "finished" || status === "success") {
@@ -183,6 +181,133 @@ export async function pollDeploymentStatus({
 
     const spinnerIndex = Math.floor((elapsed / 100) % SPINNER_CHARS.length);
     logger.info(`${SPINNER_CHARS[spinnerIndex]} Waiting for deployment... Status: ${status}`);
+
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+}
+
+interface AppDetails {
+  fqdn: string;
+  health_check_enabled: boolean;
+  health_check_path: string;
+  health_check_return_code: number;
+}
+
+/**
+ * Fetches application details from Coolify API.
+ */
+export async function getAppDetails({
+  appUUID,
+  coolifyToken,
+  coolifyURL,
+  logger,
+}: {
+  appUUID: string;
+  coolifyToken: string;
+  coolifyURL: string;
+  logger: Logger;
+}): Promise<AppDetails> {
+  logger.info("Fetching application details...");
+
+  const response = await fetch(new URL(`/api/v1/applications/${appUUID}`, coolifyURL), {
+    headers: { Authorization: `Bearer ${coolifyToken}` },
+  });
+  if (!response.ok)
+    throw new Error(`Failed to fetch application details: ${response.statusText}`);
+
+  const data = (await response.json()) as AppDetails;
+  logger.info(`Application FQDN: ${data.fqdn}`);
+  logger.info(
+    `Healthcheck: ${data.health_check_enabled ? "enabled" : "disabled"} at ${data.health_check_path || "/"}`,
+  );
+
+  return data;
+}
+
+/**
+ * Updates application healthcheck settings on Coolify.
+ */
+export async function updateHealthcheck({
+  appUUID,
+  coolifyToken,
+  coolifyURL,
+  healthcheckPath,
+  logger,
+}: {
+  appUUID: string;
+  coolifyToken: string;
+  coolifyURL: string;
+  healthcheckPath: string;
+  logger: Logger;
+}): Promise<void> {
+  logger.info(`Setting healthcheck path to ${healthcheckPath}...`);
+
+  const response = await fetch(new URL(`/api/v1/applications/${appUUID}`, coolifyURL), {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${coolifyToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      health_check_enabled: true,
+      health_check_path: healthcheckPath,
+    }),
+  });
+  if (!response.ok)
+    throw new Error(`Failed to update healthcheck: ${response.statusText}`);
+  logger.info("Healthcheck configuration updated successfully");
+}
+
+/**
+ * Polls the healthcheck endpoint until it returns success or times out.
+ */
+export async function verifyHealthcheck({
+  fqdn,
+  healthcheckPath,
+  timeout,
+  logger,
+}: {
+  fqdn: string;
+  healthcheckPath: string;
+  timeout: number;
+  logger: Logger;
+}): Promise<string> {
+  const healthcheckUrl = `https://${fqdn}${healthcheckPath}`;
+  logger.info(`Verifying healthcheck at ${healthcheckUrl}`);
+
+  const startTime = Date.now();
+  const timeoutMs = timeout * 1000;
+
+  while (true) {
+    try {
+      const response = await fetch(healthcheckUrl);
+
+      if (response.ok) {
+        logger.info(`✓ Healthcheck passed: ${response.status} ${response.statusText}`);
+        return healthcheckUrl;
+      }
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= timeoutMs)
+        throw new Error(
+          `Healthcheck timed out after ${timeout} seconds: ${response.status} ${response.statusText}`,
+        );
+
+      const spinnerIndex = Math.floor((elapsed / 100) % SPINNER_CHARS.length);
+      logger.info(
+        `${SPINNER_CHARS[spinnerIndex]} Waiting for healthcheck... Status: ${response.status}`,
+      );
+    } catch (error) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed >= timeoutMs) {
+        const message = error instanceof Error ? error.message : "Unknown error";
+        throw new Error(`Healthcheck timed out after ${timeout} seconds: ${message}`);
+      }
+
+      const spinnerIndex = Math.floor((elapsed / 100) % SPINNER_CHARS.length);
+      const message = error instanceof Error ? error.message : "Connection failed";
+      logger.info(`${SPINNER_CHARS[spinnerIndex]} Waiting for healthcheck... ${message}`);
+    }
 
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }

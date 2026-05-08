@@ -18,10 +18,20 @@ inputs:
   env-vars:
     description: "Environment variables in dotenv format"
     required: false
+  healthcheck-path:
+    description: "Healthcheck path (default: /)"
+    required: false
+    default: "/"
+  healthcheck-timeout:
+    description: "Healthcheck timeout in seconds (default: 60)"
+    required: false
+    default: "60"
 
 outputs:
   deployment-uuid:
     description: "UUID of the deployment"
+  healthcheck-url:
+    description: "Full URL of the verified healthcheck endpoint"
 
 runs:
   using: "node20"

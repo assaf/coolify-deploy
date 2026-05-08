@@ -9,11 +9,14 @@ import * as core from "@actions/core";
 import {
   buildDockerImage,
   findAppUUID,
+  getAppDetails,
   pollDeploymentStatus,
   startDeployment,
+  updateHealthcheck,
+  verifyHealthcheck,
 } from "./lib/deploy.js";
 
-const actionLogger = {
+const logger = {
   info(message: string) {
     core.info(message);
   },
@@ -32,27 +35,32 @@ async function run(): Promise<void> {
     const image = core.getInput("image", { required: true });
     const token = core.getInput("coolify-token", { required: true });
     const envVars = core.getInput("env-vars", { required: false });
+    const healthcheckPath = core.getInput("healthcheck-path", { required: false }) || "/";
+    const healthcheckTimeout = parseInt(
+      core.getInput("healthcheck-timeout", { required: false }) || "60",
+      10,
+    );
 
-    actionLogger.info(`Deploying ${image} to ${appName} at ${coolifyURL}`);
+    logger.info(`Deploying ${image} to ${appName} at ${coolifyURL}`);
 
     const appUUID = await findAppUUID({
       coolifyURL,
       appName,
       coolifyToken: token,
-      logger: actionLogger,
+      logger,
     });
 
     await buildDockerImage({
       image,
       envVars,
-      logger: actionLogger,
+      logger,
     });
 
     const deploymentUUID = await startDeployment({
       appUUID,
       coolifyToken: token,
       coolifyURL,
-      logger: actionLogger,
+      logger,
     });
 
     core.setOutput("deployment-uuid", deploymentUUID);
@@ -62,8 +70,44 @@ async function run(): Promise<void> {
       coolifyToken: token,
       coolifyURL,
       timeout: 600,
-      logger: actionLogger,
+      logger,
     });
+
+    // Fetch app details and configure/update healthcheck
+    const appDetails = await getAppDetails({
+      appUUID,
+      coolifyToken: token,
+      coolifyURL,
+      logger,
+    });
+
+    let activeHealthcheckPath = healthcheckPath;
+
+    // Update healthcheck if disabled or path needs to be changed
+    if (!appDetails.health_check_enabled || appDetails.health_check_path !== healthcheckPath) {
+      await updateHealthcheck({
+        appUUID,
+        coolifyToken: token,
+        coolifyURL,
+        healthcheckPath,
+        logger,
+      });
+    }
+
+    // Use existing healthcheck path if no custom path provided
+    if (appDetails.health_check_enabled && healthcheckPath === "/") {
+      activeHealthcheckPath = appDetails.health_check_path || "/";
+    }
+
+    // Verify healthcheck
+    const healthcheckUrl = await verifyHealthcheck({
+      fqdn: appDetails.fqdn,
+      healthcheckPath: activeHealthcheckPath,
+      timeout: healthcheckTimeout,
+      logger,
+    });
+
+    core.setOutput("healthcheck-url", healthcheckUrl);
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message);
     else core.setFailed("An unknown error occurred");
