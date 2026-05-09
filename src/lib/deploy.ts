@@ -65,7 +65,7 @@ export async function buildDockerImage({
 
   const args = ["buildx", "build", "--platform", "linux/amd64", "--push", "-t", image, "."];
 
-  if (hasEnvVars) args.push("--secret", "id=dotenv,src=/dev/stdin");
+  if (hasEnvVars) args.push("--secret", "id=env,src=/dev/stdin");
 
   await new Promise<void>((resolve, reject) => {
     const child = spawn("docker", args, {
@@ -81,7 +81,7 @@ export async function buildDockerImage({
       if (code === 0) {
         resolve();
       } else {
-        const cmd = `docker buildx build --platform linux/amd64${hasEnvVars ? " --secret id=dotenv,src=/dev/stdin" : ""} --push -t ${image} .`;
+        const cmd = `docker buildx build --platform linux/amd64${hasEnvVars ? " --secret id=env,src=/dev/stdin" : ""} --push -t ${image} .`;
         reject(new Error(`Command failed with code ${code}: ${cmd}`));
       }
     });
@@ -191,6 +191,8 @@ interface AppDetails {
   health_check_enabled: boolean;
   health_check_path: string;
   health_check_return_code: number;
+  health_check_port: string | null;
+  ports_exposes: string;
 }
 
 /**
@@ -232,15 +234,19 @@ export async function updateHealthcheck({
   coolifyToken,
   coolifyURL,
   healthcheckPath,
+  healthcheckPort = "3000",
+  portsExposes = "3000",
   logger,
 }: {
   appUUID: string;
   coolifyToken: string;
   coolifyURL: string;
   healthcheckPath: string;
+  healthcheckPort?: string;
+  portsExposes?: string;
   logger: Logger;
 }): Promise<void> {
-  logger.info(`Setting healthcheck path to ${healthcheckPath}...`);
+  logger.info(`Setting healthcheck to ${healthcheckPath} on port ${healthcheckPort}...`);
 
   const response = await fetch(new URL(`/api/v1/applications/${appUUID}`, coolifyURL), {
     method: "PATCH",
@@ -251,6 +257,8 @@ export async function updateHealthcheck({
     body: JSON.stringify({
       health_check_enabled: true,
       health_check_path: healthcheckPath,
+      health_check_port: healthcheckPort,
+      ports_exposes: portsExposes,
     }),
   });
   if (!response.ok)
@@ -264,15 +272,18 @@ export async function updateHealthcheck({
 export async function verifyHealthcheck({
   fqdn,
   healthcheckPath,
+  healthcheckPort = "3000",
   timeout,
   logger,
 }: {
   fqdn: string;
   healthcheckPath: string;
+  healthcheckPort?: string;
   timeout: number;
   logger: Logger;
 }): Promise<string> {
-  const healthcheckUrl = `https://${fqdn}${healthcheckPath}`;
+  const protocol = fqdn.startsWith("http://") || fqdn.startsWith("https://") ? "" : "https://";
+  const healthcheckUrl = `${protocol}${fqdn}${healthcheckPath}`;
   logger.info(`Verifying healthcheck at ${healthcheckUrl}`);
 
   const startTime = Date.now();

@@ -202,7 +202,7 @@ describe("deploy.ts", () => {
           "ghcr.io/user/app:v1",
           ".",
           "--secret",
-          "id=dotenv,src=/dev/stdin",
+          "id=env,src=/dev/stdin",
         ],
         { stdio: ["pipe", "inherit", "inherit"] },
       );
@@ -663,12 +663,14 @@ describe("deploy.ts", () => {
         body: JSON.stringify({
           health_check_enabled: true,
           health_check_path: "/health",
+          health_check_port: "3000",
+          ports_exposes: "3000",
         }),
       });
       expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString()).toBe(
         "https://coolify.example.com/api/v1/applications/app-uuid-1",
       );
-      expect(mockLogger.info).toHaveBeenCalledWith("Setting healthcheck path to /health...");
+      expect(mockLogger.info).toHaveBeenCalledWith("Setting healthcheck to /health on port 3000...");
       expect(mockLogger.info).toHaveBeenCalledWith(
         "Healthcheck configuration updated successfully",
       );

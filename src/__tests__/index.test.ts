@@ -64,6 +64,8 @@ describe("index.ts (GitHub Action)", () => {
       health_check_enabled: true,
       health_check_path: "/health",
       health_check_return_code: 200,
+      health_check_port: null,
+      ports_exposes: "3000",
     });
     vi.mocked(updateHealthcheck).mockResolvedValue();
     vi.mocked(verifyHealthcheck).mockResolvedValue("https://app.example.com/health");
@@ -222,6 +224,8 @@ describe("index.ts (GitHub Action)", () => {
       health_check_enabled: false,
       health_check_path: "",
       health_check_return_code: 200,
+      health_check_port: null,
+      ports_exposes: "3000",
     });
 
     vi.mocked(core.getInput).mockImplementation((name: string) => {
@@ -248,12 +252,14 @@ describe("index.ts (GitHub Action)", () => {
     });
   });
 
-  it("should not update healthcheck when already configured correctly", async () => {
+  it("should update healthcheck even when already configured correctly", async () => {
     vi.mocked(getAppDetails).mockResolvedValue({
       fqdn: "app.example.com",
       health_check_enabled: true,
       health_check_path: "/health",
       health_check_return_code: 200,
+      health_check_port: null,
+      ports_exposes: "3000",
     });
 
     vi.mocked(core.getInput).mockImplementation((name: string) => {
@@ -272,7 +278,11 @@ describe("index.ts (GitHub Action)", () => {
     await import("../index.js");
 
     await vi.waitFor(() => {
-      expect(updateHealthcheck).not.toHaveBeenCalled();
+      expect(updateHealthcheck).toHaveBeenCalledWith(
+        expect.objectContaining({
+          healthcheckPath: "/health",
+        }),
+      );
       expect(verifyHealthcheck).toHaveBeenCalledWith(
         expect.objectContaining({
           healthcheckPath: "/health",
@@ -378,6 +388,8 @@ describe("index.ts (GitHub Action)", () => {
       health_check_enabled: false,
       health_check_path: "",
       health_check_return_code: 200,
+      health_check_port: null,
+      ports_exposes: "3000",
     });
     vi.mocked(updateHealthcheck).mockRejectedValue(new Error("Failed to update healthcheck"));
 

@@ -121,16 +121,14 @@ async function run(): Promise<void> {
 
     let activeHealthcheckPath = healthcheckPath;
 
-    // Update healthcheck if disabled or path needs to be changed
-    if (!appDetails.health_check_enabled || appDetails.health_check_path !== healthcheckPath) {
-      await updateHealthcheck({
-        appUUID,
-        coolifyToken: token,
-        coolifyURL,
-        healthcheckPath,
-        logger,
-      });
-    }
+    // Update healthcheck configuration (idempotent PATCH)
+    await updateHealthcheck({
+      appUUID,
+      coolifyToken: token,
+      coolifyURL,
+      healthcheckPath,
+      logger,
+    });
 
     // Use existing healthcheck path if no custom path provided
     if (appDetails.health_check_enabled && healthcheckPath === "/")
