@@ -26,6 +26,10 @@ inputs:
     description: "Healthcheck timeout in seconds (default: 60)"
     required: false
     default: "60"
+  context:
+    description: "Docker build context path"
+    required: false
+    default: "."
 
 outputs:
   deployment-uuid:

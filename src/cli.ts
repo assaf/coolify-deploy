@@ -39,6 +39,7 @@ async function run(): Promise<void> {
       "--healthcheck-timeout <seconds>",
       "Healthcheck timeout in seconds (or HEALTHCHECK_TIMEOUT env, default: 60)",
     )
+    .option("--context <path>", "Docker build context path (default: .)")
     .parse(process.argv);
 
   const options = program.opts();
@@ -71,6 +72,8 @@ async function run(): Promise<void> {
     process.exit(1);
   }
 
+  const context = options.context ?? ".";
+
   let envVars: string | undefined;
   if (options.envFile) {
     if (!existsSync(options.envFile)) {
@@ -94,6 +97,7 @@ async function run(): Promise<void> {
       image,
       envVars,
       logger,
+      context,
     });
 
     const deploymentUUID = await startDeployment({

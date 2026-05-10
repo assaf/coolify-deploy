@@ -21646,7 +21646,7 @@ exports.METHODS_RTSP = [
 exports.METHOD_MAP = utils_1.enumToMap(METHODS);
 exports.H_METHOD_MAP = {};
 Object.keys(exports.METHOD_MAP).forEach((key) => {
-    if (/^H/.test(key)) {
+    if (key.startsWith('H')) {
         exports.H_METHOD_MAP[key] = exports.METHOD_MAP[key];
     }
 });
@@ -27457,10 +27457,10 @@ async function findAppUUID({ coolifyURL, appName, coolifyToken, logger, }) {
 /**
  * Builds and pushes the Docker image to the registry.
  */
-async function buildDockerImage({ image, envVars, logger, }) {
+async function buildDockerImage({ image, envVars, logger, context, }) {
     logger.info("Building Docker image...");
     const hasEnvVars = envVars && envVars.trim().length > 0;
-    const args = ["buildx", "build", "--platform", "linux/amd64", "--push", "-t", image, "."];
+    const args = ["buildx", "build", "--platform", "linux/amd64", "--push", "-t", image, context];
     if (hasEnvVars)
         args.push("--secret", "id=env,src=/dev/stdin");
     await new Promise((resolve, reject) => {
@@ -27476,7 +27476,7 @@ async function buildDockerImage({ image, envVars, logger, }) {
                 resolve();
             }
             else {
-                const cmd = `docker buildx build --platform linux/amd64${hasEnvVars ? " --secret id=env,src=/dev/stdin" : ""} --push -t ${image} .`;
+                const cmd = `docker buildx build --platform linux/amd64${hasEnvVars ? " --secret id=env,src=/dev/stdin" : ""} --push -t ${image} ${context}`;
                 reject(new Error(`Command failed with code ${code}: ${cmd}`));
             }
         });
@@ -27641,6 +27641,7 @@ async function run() {
         const envVars = core.getInput("env-vars", { required: false });
         const healthcheckPath = core.getInput("healthcheck-path", { required: false }) || "/";
         const healthcheckTimeout = parseInt(core.getInput("healthcheck-timeout", { required: false }) || "60", 10);
+        const context = core.getInput("context", { required: false }) || ".";
         logger.info(`Deploying ${image} to ${appName} at ${coolifyURL}`);
         const appUUID = await findAppUUID({
             coolifyURL,
@@ -27652,6 +27653,7 @@ async function run() {
             image,
             envVars,
             logger,
+            context,
         });
         const deploymentUUID = await startDeployment({
             appUUID,

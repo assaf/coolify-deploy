@@ -54,16 +54,18 @@ export async function buildDockerImage({
   image,
   envVars,
   logger,
+  context,
 }: {
   image: string;
   envVars?: string;
   logger: Logger;
+  context: string;
 }): Promise<void> {
   logger.info("Building Docker image...");
 
   const hasEnvVars = envVars && envVars.trim().length > 0;
 
-  const args = ["buildx", "build", "--platform", "linux/amd64", "--push", "-t", image, "."];
+  const args = ["buildx", "build", "--platform", "linux/amd64", "--push", "-t", image, context];
 
   if (hasEnvVars) args.push("--secret", "id=env,src=/dev/stdin");
 
@@ -81,7 +83,7 @@ export async function buildDockerImage({
       if (code === 0) {
         resolve();
       } else {
-        const cmd = `docker buildx build --platform linux/amd64${hasEnvVars ? " --secret id=env,src=/dev/stdin" : ""} --push -t ${image} .`;
+        const cmd = `docker buildx build --platform linux/amd64${hasEnvVars ? " --secret id=env,src=/dev/stdin" : ""} --push -t ${image} ${context}`;
         reject(new Error(`Command failed with code ${code}: ${cmd}`));
       }
     });

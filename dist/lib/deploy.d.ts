@@ -17,10 +17,11 @@ export declare function findAppUUID({ coolifyURL, appName, coolifyToken, logger,
 /**
  * Builds and pushes the Docker image to the registry.
  */
-export declare function buildDockerImage({ image, envVars, logger, }: {
+export declare function buildDockerImage({ image, envVars, logger, context, }: {
     image: string;
     envVars?: string;
     logger: Logger;
+    context: string;
 }): Promise<void>;
 /**
  * Starts a deployment on Coolify.
@@ -80,5 +81,5 @@ export declare function verifyHealthcheck({ fqdn, healthcheckPath, healthcheckPo
     timeout: number;
     logger: Logger;
 }): Promise<string>;
-export {};
+
 //# sourceMappingURL=deploy.d.ts.map

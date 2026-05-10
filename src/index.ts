@@ -40,6 +40,7 @@ async function run(): Promise<void> {
       core.getInput("healthcheck-timeout", { required: false }) || "60",
       10,
     );
+    const context = core.getInput("context", { required: false }) || ".";
 
     logger.info(`Deploying ${image} to ${appName} at ${coolifyURL}`);
 
@@ -54,6 +55,7 @@ async function run(): Promise<void> {
       image,
       envVars,
       logger,
+      context,
     });
 
     const deploymentUUID = await startDeployment({

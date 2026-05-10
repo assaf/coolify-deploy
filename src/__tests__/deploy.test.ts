@@ -151,6 +151,7 @@ describe("deploy.ts", () => {
       await buildDockerImage({
         image: "ghcr.io/user/app:v1",
         logger: mockLogger,
+        context: ".",
       });
 
       expect(spawn).toHaveBeenCalledWith(
@@ -188,6 +189,7 @@ describe("deploy.ts", () => {
         image: "ghcr.io/user/app:v1",
         envVars,
         logger: mockLogger,
+        context: ".",
       });
 
       expect(spawn).toHaveBeenCalledWith(
@@ -224,6 +226,7 @@ describe("deploy.ts", () => {
         buildDockerImage({
           image: "ghcr.io/user/app:v1",
           logger: mockLogger,
+          context: ".",
         }),
       ).rejects.toThrow("Command failed with code 1");
     });
@@ -242,6 +245,7 @@ describe("deploy.ts", () => {
         buildDockerImage({
           image: "ghcr.io/user/app:v1",
           logger: mockLogger,
+          context: ".",
         }),
       ).rejects.toThrow("spawn error");
     });

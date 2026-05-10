@@ -25,6 +25,7 @@ async function run() {
         .option("--env-file <file>", "File containing environment variables for build")
         .option("--healthcheck-path <path>", "Healthcheck path (or HEALTHCHECK_PATH env, default: /)")
         .option("--healthcheck-timeout <seconds>", "Healthcheck timeout in seconds (or HEALTHCHECK_TIMEOUT env, default: 60)")
+        .option("--context <path>", "Docker build context path (default: .)")
         .parse(process.argv);
     const options = program.opts();
     const coolifyURL = options.coolifyUrl ?? process.env.COOLIFY_URL;
@@ -52,6 +53,7 @@ async function run() {
             logger.error("  --coolify-token, COOLIFY_TOKEN, or --coolify-token-file");
         process.exit(1);
     }
+    const context = options.context ?? ".";
     let envVars;
     if (options.envFile) {
         if (!existsSync(options.envFile)) {
@@ -72,6 +74,7 @@ async function run() {
             image,
             envVars,
             logger,
+            context,
         });
         const deploymentUUID = await startDeployment({
             appUUID,
