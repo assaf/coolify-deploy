@@ -2,9 +2,9 @@
  * Shared deploy logic for GitHub Action and CLI.
  */
 import { spawn } from "node:child_process";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
+import fs from "node:fs";
+import path from "node:path";
+import { tmpdir } from "node:os";
 const SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 /**
  * Finds the application UUID for the given Coolify application name.
@@ -32,9 +32,18 @@ export async function buildDockerImage({ image, envVars, logger, context, }) {
     logger.info("Building Docker image...");
     const hasEnvVars = envVars && envVars.trim().length > 0;
     let secretFile;
-    const args = ["buildx", "build", "--platform", "linux/amd64", "--push", "-t", image, context];
+    const args = [
+        "buildx",
+        "build",
+        "--platform",
+        "linux/amd64",
+        "--push",
+        "-t",
+        image,
+        context,
+    ];
     if (hasEnvVars) {
-        secretFile = path.join(os.tmpdir(), `coolify-env-${Date.now()}`);
+        secretFile = path.join(tmpdir(), `coolify-env-${Date.now()}`);
         fs.writeFileSync(secretFile, envVars);
         args.push("--secret", `id=env,src=${secretFile}`);
     }
@@ -160,7 +169,7 @@ export async function updateHealthcheck({ appUUID, coolifyToken, coolifyURL, hea
 /**
  * Polls the healthcheck endpoint until it returns success or times out.
  */
-export async function verifyHealthcheck({ fqdn, healthcheckPath, healthcheckPort = "3000", timeout, logger, }) {
+export async function verifyHealthcheck({ fqdn, healthcheckPath, timeout, logger, }) {
     const protocol = fqdn.startsWith("http://") || fqdn.startsWith("https://") ? "" : "https://";
     const healthcheckUrl = `${protocol}${fqdn}${healthcheckPath}`;
     logger.info(`Verifying healthcheck at ${healthcheckUrl}`);

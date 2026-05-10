@@ -1,9 +1,6 @@
-/**
- * Tests for src/__tests__/deploy.test.ts
- */
-
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { spawn } from "node:child_process";
+import { writeFile, unlink } from "node:fs/promises";
 import {
   findAppUUID,
   buildDockerImage,
@@ -14,9 +11,13 @@ import {
   verifyHealthcheck,
 } from "../lib/deploy.js";
 
-// Mock child_process spawn
 vi.mock("node:child_process", () => ({
   spawn: vi.fn(),
+}));
+
+vi.mock("node:fs/promises", () => ({
+  writeFile: vi.fn(),
+  unlink: vi.fn(),
 }));
 
 // Create a mock logger
@@ -140,7 +141,6 @@ describe("deploy.ts", () => {
   describe("buildDockerImage", () => {
     it("should build and push Docker image successfully without env vars", async () => {
       const mockChild = {
-        stdin: { write: vi.fn(), end: vi.fn() },
         on: vi.fn((event: string, callback: (code?: number) => void) => {
           if (event === "close") callback(0);
         }),
@@ -168,20 +168,22 @@ describe("deploy.ts", () => {
         ],
         { stdio: ["inherit", "inherit", "inherit"] },
       );
-      expect(mockChild.stdin?.write).not.toHaveBeenCalled();
+      expect(writeFile).not.toHaveBeenCalled();
+      expect(unlink).not.toHaveBeenCalled();
       expect(mockLogger.info).toHaveBeenCalledWith("Building Docker image...");
       expect(mockLogger.info).toHaveBeenCalledWith("Docker image built and pushed successfully");
     });
 
     it("should build and push Docker image with env vars", async () => {
       const mockChild = {
-        stdin: { write: vi.fn(), end: vi.fn() },
         on: vi.fn((event: string, callback: (code?: number) => void) => {
           if (event === "close") callback(0);
         }),
       };
 
       vi.mocked(spawn).mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
+      vi.mocked(writeFile).mockResolvedValue(undefined);
+      vi.mocked(unlink).mockResolvedValue(undefined);
 
       const envVars = "NODE_ENV=production\nAPI_KEY=secret";
 
@@ -191,6 +193,10 @@ describe("deploy.ts", () => {
         logger: mockLogger,
         context: ".",
       });
+
+      expect(writeFile).toHaveBeenCalledTimes(1);
+      const writtenEnvFile = vi.mocked(writeFile).mock.calls[0][0];
+      expect(writeFile).toHaveBeenCalledWith(expect.any(String), envVars);
 
       expect(spawn).toHaveBeenCalledWith(
         "docker",
@@ -202,19 +208,18 @@ describe("deploy.ts", () => {
           "--push",
           "-t",
           "ghcr.io/user/app:v1",
-          ".",
           "--secret",
-          "id=env,src=/dev/stdin",
+          `id=env,src=${writtenEnvFile}`,
+          ".",
         ],
-        { stdio: ["pipe", "inherit", "inherit"] },
+        { stdio: ["inherit", "inherit", "inherit"] },
       );
-      expect(mockChild.stdin?.write).toHaveBeenCalledWith(envVars);
-      expect(mockChild.stdin?.end).toHaveBeenCalled();
+
+      expect(unlink).toHaveBeenCalledWith(writtenEnvFile);
     });
 
     it("should throw error when docker command fails", async () => {
       const mockChild = {
-        stdin: { write: vi.fn(), end: vi.fn() },
         on: vi.fn((event: string, callback: (code?: number) => void) => {
           if (event === "close") callback(1);
         }),
@@ -233,7 +238,6 @@ describe("deploy.ts", () => {
 
     it("should throw error when spawn encounters an error", async () => {
       const mockChild = {
-        stdin: { write: vi.fn(), end: vi.fn() },
         on: vi.fn((event: string, callback: (err?: Error) => void) => {
           if (event === "error") callback(new Error("spawn error"));
         }),

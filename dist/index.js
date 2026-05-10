@@ -21646,7 +21646,7 @@ exports.METHODS_RTSP = [
 exports.METHOD_MAP = utils_1.enumToMap(METHODS);
 exports.H_METHOD_MAP = {};
 Object.keys(exports.METHOD_MAP).forEach((key) => {
-    if (/^H/.test(key)) {
+    if (key.startsWith('H')) {
         exports.H_METHOD_MAP[key] = exports.METHOD_MAP[key];
     }
 });
@@ -27418,6 +27418,35 @@ module.exports = parseParams
 /******/ }
 /******/ 
 /************************************************************************/
+/******/ /* webpack/runtime/compat get default export */
+/******/ (() => {
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__nccwpck_require__.n = (module) => {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			() => (module['default']) :
+/******/ 			() => (module);
+/******/ 		__nccwpck_require__.d(getter, { a: getter });
+/******/ 		return getter;
+/******/ 	};
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/define property getters */
+/******/ (() => {
+/******/ 	// define getter functions for harmony exports
+/******/ 	__nccwpck_require__.d = (exports, definition) => {
+/******/ 		for(var key in definition) {
+/******/ 			if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
+/******/ 				Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 			}
+/******/ 		}
+/******/ 	};
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/hasOwnProperty shorthand */
+/******/ (() => {
+/******/ 	__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ })();
+/******/ 
 /******/ /* webpack/runtime/compat */
 /******/ 
 /******/ if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = new URL('.', import.meta.url).pathname.slice(import.meta.url.match(/^file:\/\/\/\w:/) ? 1 : 0, -1) + "/";
@@ -27431,10 +27460,12 @@ var core = __nccwpck_require__(6966);
 const external_node_child_process_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:child_process");
 ;// CONCATENATED MODULE: external "node:fs"
 const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
-;// CONCATENATED MODULE: external "node:os"
-const external_node_os_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:os");
+var external_node_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_node_fs_namespaceObject);
 ;// CONCATENATED MODULE: external "node:path"
 const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
+var external_node_path_default = /*#__PURE__*/__nccwpck_require__.n(external_node_path_namespaceObject);
+;// CONCATENATED MODULE: external "node:os"
+const external_node_os_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:os");
 ;// CONCATENATED MODULE: ./src/lib/deploy.ts
 /**
  * Shared deploy logic for GitHub Action and CLI.
@@ -27470,10 +27501,19 @@ async function buildDockerImage({ image, envVars, logger, context, }) {
     logger.info("Building Docker image...");
     const hasEnvVars = envVars && envVars.trim().length > 0;
     let secretFile;
-    const args = ["buildx", "build", "--platform", "linux/amd64", "--push", "-t", image, context];
+    const args = [
+        "buildx",
+        "build",
+        "--platform",
+        "linux/amd64",
+        "--push",
+        "-t",
+        image,
+        context,
+    ];
     if (hasEnvVars) {
-        secretFile = external_node_path_namespaceObject.join(external_node_os_namespaceObject.tmpdir(), `coolify-env-${Date.now()}`);
-        external_node_fs_namespaceObject.writeFileSync(secretFile, envVars);
+        secretFile = external_node_path_default().join((0,external_node_os_namespaceObject.tmpdir)(), `coolify-env-${Date.now()}`);
+        external_node_fs_default().writeFileSync(secretFile, envVars);
         args.push("--secret", `id=env,src=${secretFile}`);
     }
     try {
@@ -27495,7 +27535,7 @@ async function buildDockerImage({ image, envVars, logger, context, }) {
     finally {
         if (secretFile) {
             try {
-                external_node_fs_namespaceObject.unlinkSync(secretFile);
+                external_node_fs_default().unlinkSync(secretFile);
             }
             catch {
                 // ignore cleanup errors
@@ -27598,7 +27638,7 @@ async function updateHealthcheck({ appUUID, coolifyToken, coolifyURL, healthchec
 /**
  * Polls the healthcheck endpoint until it returns success or times out.
  */
-async function verifyHealthcheck({ fqdn, healthcheckPath, healthcheckPort = "3000", timeout, logger, }) {
+async function verifyHealthcheck({ fqdn, healthcheckPath, timeout, logger, }) {
     const protocol = fqdn.startsWith("http://") || fqdn.startsWith("https://") ? "" : "https://";
     const healthcheckUrl = `${protocol}${fqdn}${healthcheckPath}`;
     logger.info(`Verifying healthcheck at ${healthcheckUrl}`);

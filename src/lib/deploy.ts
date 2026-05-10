@@ -3,9 +3,9 @@
  */
 
 import { spawn } from "node:child_process";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
+import fs from "node:fs";
+import path from "node:path";
+import { tmpdir } from "node:os";
 
 const SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 
@@ -34,9 +34,10 @@ export async function findAppUUID({
     headers: { Authorization: `Bearer ${coolifyToken}` },
   });
 
-  if (!response.ok) throw new Error(`Failed to find application: ${response.statusText}`);
+  if (!response.ok)
+    throw new Error(`Failed to find application: ${response.statusText}`);
 
-  const data = (await response.json()) as { uuid: string; name: string; }[];
+  const data = (await response.json()) as { uuid: string; name: string }[];
 
   const appUUID = data.find(({ name }) => name === appName)?.uuid;
   if (!appUUID) {
@@ -69,10 +70,19 @@ export async function buildDockerImage({
   const hasEnvVars = envVars && envVars.trim().length > 0;
   let secretFile: string | undefined;
 
-  const args = ["buildx", "build", "--platform", "linux/amd64", "--push", "-t", image, context];
+  const args = [
+    "buildx",
+    "build",
+    "--platform",
+    "linux/amd64",
+    "--push",
+    "-t",
+    image,
+    context,
+  ];
 
   if (hasEnvVars) {
-    secretFile = path.join(os.tmpdir(), `coolify-env-${Date.now()}`);
+    secretFile = path.join(tmpdir(), `coolify-env-${Date.now()}`);
     fs.writeFileSync(secretFile, envVars);
     args.push("--secret", `id=env,src=${secretFile}`);
   }
@@ -130,10 +140,11 @@ export async function startDeployment({
     headers: { Authorization: `Bearer ${coolifyToken}` },
   });
 
-  if (!response.ok) throw new Error(`Failed to trigger deployment: ${response.statusText}`);
+  if (!response.ok)
+    throw new Error(`Failed to trigger deployment: ${response.statusText}`);
 
   const { deployments } = (await response.json()) as {
-    deployments: { deployment_uuid: string; }[] | undefined;
+    deployments: { deployment_uuid: string }[] | undefined;
   };
 
   const deploymentUUID = deployments?.[0]?.deployment_uuid;
@@ -165,13 +176,19 @@ export async function pollDeploymentStatus({
   const timeoutMs = timeout * 1000;
 
   while (true) {
-    const response = await fetch(new URL(`/api/v1/deployments/${deploymentUUID}`, coolifyURL), {
-      headers: { Authorization: `Bearer ${coolifyToken}` },
-    });
+    const response = await fetch(
+      new URL(`/api/v1/deployments/${deploymentUUID}`, coolifyURL),
+      {
+        headers: { Authorization: `Bearer ${coolifyToken}` },
+      },
+    );
 
-    if (!response.ok) throw new Error(`Failed to get deployment status: ${response.statusText}`);
+    if (!response.ok)
+      throw new Error(
+        `Failed to get deployment status: ${response.statusText}`,
+      );
 
-    const data = (await response.json()) as { status?: string; };
+    const data = (await response.json()) as { status?: string };
     const status = data.status ?? "unknown";
 
     if (status === "finished" || status === "success") {
@@ -193,7 +210,9 @@ export async function pollDeploymentStatus({
     }
 
     const spinnerIndex = Math.floor((elapsed / 100) % SPINNER_CHARS.length);
-    logger.info(`${SPINNER_CHARS[spinnerIndex]} Waiting for deployment... Status: ${status}`);
+    logger.info(
+      `${SPINNER_CHARS[spinnerIndex]} Waiting for deployment... Status: ${status}`,
+    );
 
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
@@ -224,11 +243,16 @@ export async function getAppDetails({
 }): Promise<AppDetails> {
   logger.info("Fetching application details...");
 
-  const response = await fetch(new URL(`/api/v1/applications/${appUUID}`, coolifyURL), {
-    headers: { Authorization: `Bearer ${coolifyToken}` },
-  });
+  const response = await fetch(
+    new URL(`/api/v1/applications/${appUUID}`, coolifyURL),
+    {
+      headers: { Authorization: `Bearer ${coolifyToken}` },
+    },
+  );
   if (!response.ok)
-    throw new Error(`Failed to fetch application details: ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch application details: ${response.statusText}`,
+    );
 
   const data = (await response.json()) as AppDetails;
   logger.info(`Application FQDN: ${data.fqdn}`);
@@ -259,21 +283,26 @@ export async function updateHealthcheck({
   portsExposes?: string;
   logger: Logger;
 }): Promise<void> {
-  logger.info(`Setting healthcheck to ${healthcheckPath} on port ${healthcheckPort}...`);
+  logger.info(
+    `Setting healthcheck to ${healthcheckPath} on port ${healthcheckPort}...`,
+  );
 
-  const response = await fetch(new URL(`/api/v1/applications/${appUUID}`, coolifyURL), {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${coolifyToken}`,
-      "Content-Type": "application/json",
+  const response = await fetch(
+    new URL(`/api/v1/applications/${appUUID}`, coolifyURL),
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${coolifyToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        health_check_enabled: true,
+        health_check_path: healthcheckPath,
+        health_check_port: healthcheckPort,
+        ports_exposes: portsExposes,
+      }),
     },
-    body: JSON.stringify({
-      health_check_enabled: true,
-      health_check_path: healthcheckPath,
-      health_check_port: healthcheckPort,
-      ports_exposes: portsExposes,
-    }),
-  });
+  );
   if (!response.ok)
     throw new Error(`Failed to update healthcheck: ${response.statusText}`);
   logger.info("Healthcheck configuration updated successfully");
@@ -285,17 +314,16 @@ export async function updateHealthcheck({
 export async function verifyHealthcheck({
   fqdn,
   healthcheckPath,
-  healthcheckPort = "3000",
   timeout,
   logger,
 }: {
   fqdn: string;
   healthcheckPath: string;
-  healthcheckPort?: string;
   timeout: number;
   logger: Logger;
 }): Promise<string> {
-  const protocol = fqdn.startsWith("http://") || fqdn.startsWith("https://") ? "" : "https://";
+  const protocol =
+    fqdn.startsWith("http://") || fqdn.startsWith("https://") ? "" : "https://";
   const healthcheckUrl = `${protocol}${fqdn}${healthcheckPath}`;
   logger.info(`Verifying healthcheck at ${healthcheckUrl}`);
 
@@ -307,7 +335,9 @@ export async function verifyHealthcheck({
       const response = await fetch(healthcheckUrl);
 
       if (response.ok) {
-        logger.info(`✓ Healthcheck passed: ${response.status} ${response.statusText}`);
+        logger.info(
+          `✓ Healthcheck passed: ${response.status} ${response.statusText}`,
+        );
         return healthcheckUrl;
       }
 
@@ -324,13 +354,19 @@ export async function verifyHealthcheck({
     } catch (error) {
       const elapsed = Date.now() - startTime;
       if (elapsed >= timeoutMs) {
-        const message = error instanceof Error ? error.message : "Unknown error";
-        throw new Error(`Healthcheck timed out after ${timeout} seconds: ${message}`);
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+        throw new Error(
+          `Healthcheck timed out after ${timeout} seconds: ${message}`,
+        );
       }
 
       const spinnerIndex = Math.floor((elapsed / 100) % SPINNER_CHARS.length);
-      const message = error instanceof Error ? error.message : "Connection failed";
-      logger.info(`${SPINNER_CHARS[spinnerIndex]} Waiting for healthcheck... ${message}`);
+      const message =
+        error instanceof Error ? error.message : "Connection failed";
+      logger.info(
+        `${SPINNER_CHARS[spinnerIndex]} Waiting for healthcheck... ${message}`,
+      );
     }
 
     await new Promise((resolve) => setTimeout(resolve, 3000));

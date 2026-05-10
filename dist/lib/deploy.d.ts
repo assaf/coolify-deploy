@@ -74,12 +74,11 @@ export declare function updateHealthcheck({ appUUID, coolifyToken, coolifyURL, h
 /**
  * Polls the healthcheck endpoint until it returns success or times out.
  */
-export declare function verifyHealthcheck({ fqdn, healthcheckPath, healthcheckPort, timeout, logger, }: {
+export declare function verifyHealthcheck({ fqdn, healthcheckPath, timeout, logger, }: {
     fqdn: string;
     healthcheckPath: string;
-    healthcheckPort?: string;
     timeout: number;
     logger: Logger;
 }): Promise<string>;
-export {};
+
 //# sourceMappingURL=deploy.d.ts.map
