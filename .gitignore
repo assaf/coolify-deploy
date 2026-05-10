@@ -1,8 +1,8 @@
 # Dependencies
 node_modules/
 
-# Build output
-dist/
+# Build output (action needs dist committed for GitHub Actions)
+# dist/
 
 # Logs
 *.log
