@@ -38,5 +38,5 @@ runs:
   main: "dist/index.js"
 
 branding:
-  icon: "rocket"
+  icon: "upload"
   color: "blue"
