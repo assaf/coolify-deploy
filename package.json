@@ -18,7 +18,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && ncc build src/index.ts --source-map --license licenses.txt",
     "build:action": "ncc build src/index.ts --source-map --license licenses.txt",
     "prepack": "pnpm build && pnpm build:action",
     "prepublishOnly": "pnpm build && pnpm build:action",
