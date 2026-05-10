@@ -111,6 +111,7 @@ export async function startDeployment({
   const url = new URL("/api/v1/deploy", coolifyURL);
   url.searchParams.set("type", "application");
   url.searchParams.set("uuid", appUUID);
+  url.searchParams.set("force", "true");
 
   const response = await fetch(url, {
     method: "POST",
