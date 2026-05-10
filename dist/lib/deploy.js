@@ -2,6 +2,9 @@
  * Shared deploy logic for GitHub Action and CLI.
  */
 import { spawn } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 const SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 /**
  * Finds the application UUID for the given Coolify application name.
@@ -28,29 +31,39 @@ export async function findAppUUID({ coolifyURL, appName, coolifyToken, logger, }
 export async function buildDockerImage({ image, envVars, logger, context, }) {
     logger.info("Building Docker image...");
     const hasEnvVars = envVars && envVars.trim().length > 0;
+    let secretFile;
     const args = ["buildx", "build", "--platform", "linux/amd64", "--push", "-t", image, context];
-    if (hasEnvVars)
-        args.push("--secret", "id=env,src=/dev/stdin");
-    await new Promise((resolve, reject) => {
-        const child = spawn("docker", args, {
-            stdio: hasEnvVars ? ["pipe", "inherit", "inherit"] : ["inherit", "inherit", "inherit"],
+    if (hasEnvVars) {
+        secretFile = path.join(os.tmpdir(), `coolify-env-${Date.now()}`);
+        fs.writeFileSync(secretFile, envVars);
+        args.push("--secret", `id=env,src=${secretFile}`);
+    }
+    try {
+        await new Promise((resolve, reject) => {
+            const child = spawn("docker", args, {
+                stdio: ["inherit", "inherit", "inherit"],
+            });
+            child.on("close", (code) => {
+                if (code === 0)
+                    resolve();
+                else {
+                    const cmd = `docker ${args.join(" ")}`;
+                    reject(new Error(`Command failed with code ${code}: ${cmd}`));
+                }
+            });
+            child.on("error", reject);
         });
-        if (hasEnvVars) {
-            child.stdin?.write(envVars);
-            child.stdin?.end();
+    }
+    finally {
+        if (secretFile) {
+            try {
+                fs.unlinkSync(secretFile);
+            }
+            catch {
+                // ignore cleanup errors
+            }
         }
-        child.on("close", (code) => {
-            if (code === 0) {
-                resolve();
-            }
-            else {
-                const cmd = `docker buildx build --platform linux/amd64${hasEnvVars ? " --secret id=env,src=/dev/stdin" : ""} --push -t ${image} ${context}`;
-                reject(new Error(`Command failed with code ${code}: ${cmd}`));
-            }
-        });
-        child.on("error", reject);
-    });
-    logger.info("Docker image built and pushed successfully");
+    }
 }
 /**
  * Starts a deployment on Coolify.

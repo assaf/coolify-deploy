@@ -3,6 +3,9 @@
  */
 
 import { spawn } from "node:child_process";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 
 const SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 
@@ -64,34 +67,41 @@ export async function buildDockerImage({
   logger.info("Building Docker image...");
 
   const hasEnvVars = envVars && envVars.trim().length > 0;
+  let secretFile: string | undefined;
 
   const args = ["buildx", "build", "--platform", "linux/amd64", "--push", "-t", image, context];
 
-  if (hasEnvVars) args.push("--secret", "id=env,src=/dev/stdin");
+  if (hasEnvVars) {
+    secretFile = path.join(os.tmpdir(), `coolify-env-${Date.now()}`);
+    fs.writeFileSync(secretFile, envVars);
+    args.push("--secret", `id=env,src=${secretFile}`);
+  }
 
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn("docker", args, {
-      stdio: hasEnvVars ? ["pipe", "inherit", "inherit"] : ["inherit", "inherit", "inherit"],
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn("docker", args, {
+        stdio: ["inherit", "inherit", "inherit"],
+      });
+
+      child.on("close", (code) => {
+        if (code === 0) resolve();
+        else {
+          const cmd = `docker ${args.join(" ")}`;
+          reject(new Error(`Command failed with code ${code}: ${cmd}`));
+        }
+      });
+
+      child.on("error", reject);
     });
-
-    if (hasEnvVars) {
-      child.stdin?.write(envVars);
-      child.stdin?.end();
-    }
-
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        const cmd = `docker buildx build --platform linux/amd64${hasEnvVars ? " --secret id=env,src=/dev/stdin" : ""} --push -t ${image} ${context}`;
-        reject(new Error(`Command failed with code ${code}: ${cmd}`));
+  } finally {
+    if (secretFile) {
+      try {
+        fs.unlinkSync(secretFile);
+      } catch {
+        // ignore cleanup errors
       }
-    });
-
-    child.on("error", reject);
-  });
-
-  logger.info("Docker image built and pushed successfully");
+    }
+  }
 }
 
 /**

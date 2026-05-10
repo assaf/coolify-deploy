@@ -21646,7 +21646,7 @@ exports.METHODS_RTSP = [
 exports.METHOD_MAP = utils_1.enumToMap(METHODS);
 exports.H_METHOD_MAP = {};
 Object.keys(exports.METHOD_MAP).forEach((key) => {
-    if (key.startsWith('H')) {
+    if (/^H/.test(key)) {
         exports.H_METHOD_MAP[key] = exports.METHOD_MAP[key];
     }
 });
@@ -27429,10 +27429,19 @@ var __webpack_exports__ = {};
 var core = __nccwpck_require__(6966);
 ;// CONCATENATED MODULE: external "node:child_process"
 const external_node_child_process_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:child_process");
+;// CONCATENATED MODULE: external "node:fs"
+const external_node_fs_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:fs");
+;// CONCATENATED MODULE: external "node:os"
+const external_node_os_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:os");
+;// CONCATENATED MODULE: external "node:path"
+const external_node_path_namespaceObject = __WEBPACK_EXTERNAL_createRequire(import.meta.url)("node:path");
 ;// CONCATENATED MODULE: ./src/lib/deploy.ts
 /**
  * Shared deploy logic for GitHub Action and CLI.
  */
+
+
+
 
 const SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 /**
@@ -27460,29 +27469,39 @@ async function findAppUUID({ coolifyURL, appName, coolifyToken, logger, }) {
 async function buildDockerImage({ image, envVars, logger, context, }) {
     logger.info("Building Docker image...");
     const hasEnvVars = envVars && envVars.trim().length > 0;
+    let secretFile;
     const args = ["buildx", "build", "--platform", "linux/amd64", "--push", "-t", image, context];
-    if (hasEnvVars)
-        args.push("--secret", "id=env,src=/dev/stdin");
-    await new Promise((resolve, reject) => {
-        const child = (0,external_node_child_process_namespaceObject.spawn)("docker", args, {
-            stdio: hasEnvVars ? ["pipe", "inherit", "inherit"] : ["inherit", "inherit", "inherit"],
+    if (hasEnvVars) {
+        secretFile = external_node_path_namespaceObject.join(external_node_os_namespaceObject.tmpdir(), `coolify-env-${Date.now()}`);
+        external_node_fs_namespaceObject.writeFileSync(secretFile, envVars);
+        args.push("--secret", `id=env,src=${secretFile}`);
+    }
+    try {
+        await new Promise((resolve, reject) => {
+            const child = (0,external_node_child_process_namespaceObject.spawn)("docker", args, {
+                stdio: ["inherit", "inherit", "inherit"],
+            });
+            child.on("close", (code) => {
+                if (code === 0)
+                    resolve();
+                else {
+                    const cmd = `docker ${args.join(" ")}`;
+                    reject(new Error(`Command failed with code ${code}: ${cmd}`));
+                }
+            });
+            child.on("error", reject);
         });
-        if (hasEnvVars) {
-            child.stdin?.write(envVars);
-            child.stdin?.end();
+    }
+    finally {
+        if (secretFile) {
+            try {
+                external_node_fs_namespaceObject.unlinkSync(secretFile);
+            }
+            catch {
+                // ignore cleanup errors
+            }
         }
-        child.on("close", (code) => {
-            if (code === 0) {
-                resolve();
-            }
-            else {
-                const cmd = `docker buildx build --platform linux/amd64${hasEnvVars ? " --secret id=env,src=/dev/stdin" : ""} --push -t ${image} ${context}`;
-                reject(new Error(`Command failed with code ${code}: ${cmd}`));
-            }
-        });
-        child.on("error", reject);
-    });
-    logger.info("Docker image built and pushed successfully");
+    }
 }
 /**
  * Starts a deployment on Coolify.
