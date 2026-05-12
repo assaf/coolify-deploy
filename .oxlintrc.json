@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "import",
+    "jsx-a11y",
+    "node",
+    "oxc",
+    "oxc",
+    "promise",
+    "react",
+    "typescript",
+    "typescript",
+    "unicorn",
+    "unicorn",
+    "vitest"
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "builtin": true
+  },
+  "ignorePatterns": ["dist", "node_modules"],
+  "rules": {
+    "eslint/eqeqeq": "warn",
+    "eslint/no-console": [
+      "error",
+      { "allow": ["assert", "error", "info", "warn"] }
+    ],
+    "eslint/no-unused-expressions": "error",
+    "eslint/no-useless-rename": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-unsafe-assignment": "warn",
+    "typescript/no-unsafe-declaration-merging": "error",
+    "typescript/prefer-as-const": "error",
+    "vitest/no-focused-tests": "warn"
+  },
+  "options": {
+    "denyWarnings": true,
+    "reportUnusedDisableDirectives": "error",
+    "typeAware": true,
+    "typeCheck": true
+  }
+}

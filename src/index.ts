@@ -35,7 +35,8 @@ async function run(): Promise<void> {
     const image = core.getInput("image", { required: true });
     const token = core.getInput("coolify-token", { required: true });
     const envVars = core.getInput("env-vars", { required: false });
-    const healthcheckPath = core.getInput("healthcheck-path", { required: false }) || "/";
+    const healthcheckPath =
+      core.getInput("healthcheck-path", { required: false }) || "/";
     const healthcheckTimeout = parseInt(
       core.getInput("healthcheck-timeout", { required: false }) || "60",
       10,
@@ -114,4 +115,4 @@ async function run(): Promise<void> {
   }
 }
 
-run();
+void run();

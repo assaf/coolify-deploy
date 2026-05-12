@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { spawn } from "node:child_process";
 import { writeFile, unlink } from "node:fs/promises";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   findAppUUID,
   buildDockerImage,
@@ -12,19 +12,19 @@ import {
 } from "../lib/deploy.js";
 
 vi.mock("node:child_process", () => ({
-  spawn: vi.fn(),
+  spawn: vi.fn<typeof spawn>(),
 }));
 
 vi.mock("node:fs/promises", () => ({
-  writeFile: vi.fn(),
-  unlink: vi.fn(),
+  writeFile: vi.fn<typeof writeFile>(),
+  unlink: vi.fn<typeof unlink>(),
 }));
 
 // Create a mock logger
 function createMockLogger() {
   return {
-    info: vi.fn(),
-    error: vi.fn(),
+    info: vi.fn<typeof console.info>(),
+    error: vi.fn<typeof console.error>(),
   };
 }
 
@@ -69,11 +69,15 @@ describe("deploy.ts", () => {
       expect(fetch).toHaveBeenCalledWith(expect.any(URL), {
         headers: { Authorization: "Bearer test-token" },
       });
-      expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString()).toBe(
-        "https://coolify.example.com/api/v1/applications",
+      expect(
+        (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString(),
+      ).toBe("https://coolify.example.com/api/v1/applications");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Finding application UUID for "app-two"...',
       );
-      expect(mockLogger.info).toHaveBeenCalledWith('Finding application UUID for "app-two"...');
-      expect(mockLogger.info).toHaveBeenCalledWith("Found application UUID: app-uuid-2");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Found application UUID: app-uuid-2",
+      );
     });
 
     it("should throw error when API request fails", async () => {
@@ -141,12 +145,16 @@ describe("deploy.ts", () => {
   describe("buildDockerImage", () => {
     it("should build and push Docker image successfully without env vars", async () => {
       const mockChild = {
-        on: vi.fn((event: string, callback: (code?: number) => void) => {
-          if (event === "close") callback(0);
-        }),
+        on: vi.fn<(event: string, callback: (code?: number) => void) => void>(
+          (event, callback) => {
+            if (event === "close") callback(0);
+          },
+        ),
       };
 
-      vi.mocked(spawn).mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
+      vi.mocked(spawn).mockReturnValue(
+        mockChild as unknown as ReturnType<typeof spawn>,
+      );
 
       await buildDockerImage({
         image: "ghcr.io/user/app:v1",
@@ -171,17 +179,23 @@ describe("deploy.ts", () => {
       expect(writeFile).not.toHaveBeenCalled();
       expect(unlink).not.toHaveBeenCalled();
       expect(mockLogger.info).toHaveBeenCalledWith("Building Docker image...");
-      expect(mockLogger.info).toHaveBeenCalledWith("Docker image built and pushed successfully");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Docker image built and pushed successfully",
+      );
     });
 
     it("should build and push Docker image with env vars", async () => {
       const mockChild = {
-        on: vi.fn((event: string, callback: (code?: number) => void) => {
-          if (event === "close") callback(0);
-        }),
+        on: vi.fn<(event: string, callback: (code?: number) => void) => void>(
+          (event, callback) => {
+            if (event === "close") callback(0);
+          },
+        ),
       };
 
-      vi.mocked(spawn).mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
+      vi.mocked(spawn).mockReturnValue(
+        mockChild as unknown as ReturnType<typeof spawn>,
+      );
       vi.mocked(writeFile).mockResolvedValue(undefined);
       vi.mocked(unlink).mockResolvedValue(undefined);
 
@@ -209,7 +223,7 @@ describe("deploy.ts", () => {
           "-t",
           "ghcr.io/user/app:v1",
           "--secret",
-          `id=env,src=${writtenEnvFile}`,
+          `id=env,src=${writtenEnvFile as string}`,
           ".",
         ],
         { stdio: ["inherit", "inherit", "inherit"] },
@@ -220,12 +234,16 @@ describe("deploy.ts", () => {
 
     it("should throw error when docker command fails", async () => {
       const mockChild = {
-        on: vi.fn((event: string, callback: (code?: number) => void) => {
-          if (event === "close") callback(1);
-        }),
+        on: vi.fn<(event: string, callback: (code?: number) => void) => void>(
+          (event, callback) => {
+            if (event === "close") callback(1);
+          },
+        ),
       };
 
-      vi.mocked(spawn).mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
+      vi.mocked(spawn).mockReturnValue(
+        mockChild as unknown as ReturnType<typeof spawn>,
+      );
 
       await expect(
         buildDockerImage({
@@ -238,12 +256,16 @@ describe("deploy.ts", () => {
 
     it("should throw error when spawn encounters an error", async () => {
       const mockChild = {
-        on: vi.fn((event: string, callback: (err?: Error) => void) => {
-          if (event === "error") callback(new Error("spawn error"));
-        }),
+        on: vi.fn<(event: string, callback: (err?: Error) => void) => void>(
+          (event, callback) => {
+            if (event === "error") callback(new Error("spawn error"));
+          },
+        ),
       };
 
-      vi.mocked(spawn).mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
+      vi.mocked(spawn).mockReturnValue(
+        mockChild as unknown as ReturnType<typeof spawn>,
+      );
 
       await expect(
         buildDockerImage({
@@ -281,11 +303,15 @@ describe("deploy.ts", () => {
         method: "POST",
         headers: { Authorization: "Bearer test-token" },
       });
-      expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString()).toBe(
+      expect(
+        (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString(),
+      ).toBe(
         "https://coolify.example.com/api/v1/deploy?type=application&uuid=app-uuid-1",
       );
       expect(mockLogger.info).toHaveBeenCalledWith("Starting deployment...");
-      expect(mockLogger.info).toHaveBeenCalledWith("Deployment started with UUID: deploy-123");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Deployment started with UUID: deploy-123",
+      );
     });
 
     it("should throw error when API request fails", async () => {
@@ -369,11 +395,15 @@ describe("deploy.ts", () => {
       expect(fetch).toHaveBeenCalledWith(expect.any(URL), {
         headers: { Authorization: "Bearer test-token" },
       });
-      expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString()).toBe(
-        "https://coolify.example.com/api/v1/deployments/deploy-123",
+      expect(
+        (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString(),
+      ).toBe("https://coolify.example.com/api/v1/deployments/deploy-123");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Monitoring deployment status...",
       );
-      expect(mockLogger.info).toHaveBeenCalledWith("Monitoring deployment status...");
-      expect(mockLogger.info).toHaveBeenCalledWith("✓ Deployment completed successfully");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "✓ Deployment completed successfully",
+      );
     });
 
     it("should return successfully when deployment status is success", async () => {
@@ -395,7 +425,9 @@ describe("deploy.ts", () => {
         logger: mockLogger,
       });
 
-      expect(mockLogger.info).toHaveBeenCalledWith("✓ Deployment completed successfully");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "✓ Deployment completed successfully",
+      );
     });
 
     it("should throw error when deployment fails", async () => {
@@ -474,7 +506,9 @@ describe("deploy.ts", () => {
       await pollPromise;
 
       expect(fetch).toHaveBeenCalledTimes(3);
-      expect(mockLogger.info).toHaveBeenCalledWith("✓ Deployment completed successfully");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "✓ Deployment completed successfully",
+      );
     });
 
     it("should throw error on timeout when status never finishes", async () => {
@@ -506,7 +540,9 @@ describe("deploy.ts", () => {
 
       // Check that the timeout error was thrown
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain("Deployment timed out after 1 seconds");
+      expect((error as Error).message).toContain(
+        "Deployment timed out after 1 seconds",
+      );
     });
 
     it("should throw error when status API fails", async () => {
@@ -557,7 +593,9 @@ describe("deploy.ts", () => {
 
       // Check that spinner logs were called
       const infoCalls = mockLogger.info.mock.calls;
-      const spinnerCall = infoCalls.find((call) => call[0].includes("Waiting for deployment"));
+      const spinnerCall = infoCalls.find((call) =>
+        call[0].includes("Waiting for deployment"),
+      );
       expect(spinnerCall).toBeDefined();
     });
   });
@@ -590,12 +628,18 @@ describe("deploy.ts", () => {
       expect(fetch).toHaveBeenCalledWith(expect.any(URL), {
         headers: { Authorization: "Bearer test-token" },
       });
-      expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString()).toBe(
-        "https://coolify.example.com/api/v1/applications/app-uuid-1",
+      expect(
+        (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString(),
+      ).toBe("https://coolify.example.com/api/v1/applications/app-uuid-1");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Fetching application details...",
       );
-      expect(mockLogger.info).toHaveBeenCalledWith("Fetching application details...");
-      expect(mockLogger.info).toHaveBeenCalledWith("Application FQDN: app.example.com");
-      expect(mockLogger.info).toHaveBeenCalledWith("Healthcheck: enabled at /health");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Application FQDN: app.example.com",
+      );
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Healthcheck: enabled at /health",
+      );
     });
 
     it("should handle disabled healthcheck", async () => {
@@ -622,7 +666,9 @@ describe("deploy.ts", () => {
       });
 
       expect(result.health_check_enabled).toBe(false);
-      expect(mockLogger.info).toHaveBeenCalledWith("Healthcheck: disabled at /");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Healthcheck: disabled at /",
+      );
     });
 
     it("should throw error when API request fails", async () => {
@@ -675,10 +721,12 @@ describe("deploy.ts", () => {
           ports_exposes: "3000",
         }),
       });
-      expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString()).toBe(
-        "https://coolify.example.com/api/v1/applications/app-uuid-1",
+      expect(
+        (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString(),
+      ).toBe("https://coolify.example.com/api/v1/applications/app-uuid-1");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "Setting healthcheck to /health on port 3000...",
       );
-      expect(mockLogger.info).toHaveBeenCalledWith("Setting healthcheck to /health on port 3000...");
       expect(mockLogger.info).toHaveBeenCalledWith(
         "Healthcheck configuration updated successfully",
       );
@@ -727,7 +775,9 @@ describe("deploy.ts", () => {
       expect(mockLogger.info).toHaveBeenCalledWith(
         "Verifying healthcheck at https://app.example.com/health",
       );
-      expect(mockLogger.info).toHaveBeenCalledWith("✓ Healthcheck passed: 200 OK");
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        "✓ Healthcheck passed: 200 OK",
+      );
     });
 
     it("should retry and succeed on second attempt", async () => {
@@ -782,12 +832,17 @@ describe("deploy.ts", () => {
       await verifyPromise;
 
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain("Healthcheck timed out after 1 seconds");
+      expect((error as Error).message).toContain(
+        "Healthcheck timed out after 1 seconds",
+      );
       expect((error as Error).message).toContain("503 Service Unavailable");
     });
 
     it("should throw error on timeout with connection failure", async () => {
-      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Connection refused")));
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockRejectedValue(new Error("Connection refused")),
+      );
 
       let error: unknown;
       const verifyPromise = verifyHealthcheck({
@@ -803,7 +858,9 @@ describe("deploy.ts", () => {
       await verifyPromise;
 
       expect(error).toBeInstanceOf(Error);
-      expect((error as Error).message).toContain("Healthcheck timed out after 1 seconds");
+      expect((error as Error).message).toContain(
+        "Healthcheck timed out after 1 seconds",
+      );
       expect((error as Error).message).toContain("Connection refused");
     });
 
@@ -832,7 +889,9 @@ describe("deploy.ts", () => {
       await verifyPromise;
 
       const infoCalls = mockLogger.info.mock.calls;
-      const spinnerCall = infoCalls.find((call) => call[0].includes("Waiting for healthcheck"));
+      const spinnerCall = infoCalls.find((call) =>
+        call[0].includes("Waiting for healthcheck"),
+      );
       expect(spinnerCall).toBeDefined();
     });
 

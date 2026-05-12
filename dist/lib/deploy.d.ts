@@ -80,5 +80,5 @@ export declare function verifyHealthcheck({ fqdn, healthcheckPath, timeout, logg
     timeout: number;
     logger: Logger;
 }): Promise<string>;
-
+export {};
 //# sourceMappingURL=deploy.d.ts.map

@@ -4,12 +4,12 @@
  *
  * Can be used standalone or as a GitHub Action.
  */
-import { program } from "commander";
 import { existsSync, readFileSync } from "node:fs";
+import { program } from "commander";
 import { buildDockerImage, findAppUUID, getAppDetails, pollDeploymentStatus, startDeployment, updateHealthcheck, verifyHealthcheck, } from "./lib/deploy.js";
 const logger = {
     info(message) {
-        console.log(message);
+        console.info(message);
     },
     error(message) {
         console.error(message);
@@ -124,5 +124,5 @@ async function run() {
         process.exit(1);
     }
 }
-run();
+void run();
 //# sourceMappingURL=cli.js.map

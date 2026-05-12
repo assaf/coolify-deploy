@@ -2,9 +2,16 @@
  * Shared deploy logic for GitHub Action and CLI.
  */
 import { spawn } from "node:child_process";
+<<<<<<< HEAD
 import fs from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
+=======
+import { randomBytes } from "node:crypto";
+import { writeFile, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+>>>>>>> 889c488 (Upgraded dependencies, added lint and format options)
 const SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 /**
  * Finds the application UUID for the given Coolify application name.
@@ -48,6 +55,21 @@ export async function buildDockerImage({ image, envVars, logger, context, }) {
         args.push("--secret", `id=env,src=${secretFile}`);
     }
     try {
+<<<<<<< HEAD
+=======
+        const args = [
+            "buildx",
+            "build",
+            "--platform",
+            "linux/amd64",
+            "--push",
+            "-t",
+            image,
+        ];
+        if (envFile)
+            args.push("--secret", `id=env,src=${envFile}`);
+        args.push(".");
+>>>>>>> 889c488 (Upgraded dependencies, added lint and format options)
         await new Promise((resolve, reject) => {
             const child = spawn("docker", args, {
                 stdio: ["inherit", "inherit", "inherit"],

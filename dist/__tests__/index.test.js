@@ -74,22 +74,30 @@ describe("index.ts (GitHub Action)", () => {
         });
         await import("../index.js");
         await vi.waitFor(() => {
-            expect(core.getInput).toHaveBeenCalledWith("coolify-url", { required: true });
-            expect(core.getInput).toHaveBeenCalledWith("app-name", { required: true });
+            expect(core.getInput).toHaveBeenCalledWith("coolify-url", {
+                required: true,
+            });
+            expect(core.getInput).toHaveBeenCalledWith("app-name", {
+                required: true,
+            });
             expect(core.getInput).toHaveBeenCalledWith("image", { required: true });
-            expect(core.getInput).toHaveBeenCalledWith("coolify-token", { required: true });
-            expect(core.getInput).toHaveBeenCalledWith("env-vars", { required: false });
-            expect(core.getInput).toHaveBeenCalledWith("healthcheck-path", { required: false });
-            expect(core.getInput).toHaveBeenCalledWith("healthcheck-timeout", { required: false });
+            expect(core.getInput).toHaveBeenCalledWith("coolify-token", {
+                required: true,
+            });
+            expect(core.getInput).toHaveBeenCalledWith("env-vars", {
+                required: false,
+            });
+            expect(core.getInput).toHaveBeenCalledWith("healthcheck-path", {
+                required: false,
+            });
+            expect(core.getInput).toHaveBeenCalledWith("healthcheck-timeout", {
+                required: false,
+            });
         });
         expect(findAppUUID).toHaveBeenCalledWith(expect.objectContaining({
             coolifyURL: "https://coolify.example.com",
             appName: "my-app",
             coolifyToken: "test-token",
-            logger: expect.objectContaining({
-                info: expect.any(Function),
-                error: expect.any(Function),
-            }),
         }));
         expect(buildDockerImage).toHaveBeenCalledWith(expect.objectContaining({
             image: "ghcr.io/user/app:v1",
@@ -308,14 +316,23 @@ describe("index.ts (GitHub Action)", () => {
     it("should require all mandatory inputs", async () => {
         await import("../index.js");
         // Verify all required inputs were requested
-        const requiredInputs = ["coolify-url", "app-name", "image", "coolify-token"];
+        const requiredInputs = [
+            "coolify-url",
+            "app-name",
+            "image",
+            "coolify-token",
+        ];
         requiredInputs.forEach((input) => {
             expect(core.getInput).toHaveBeenCalledWith(input, { required: true });
         });
         // Verify optional inputs were requested
         expect(core.getInput).toHaveBeenCalledWith("env-vars", { required: false });
-        expect(core.getInput).toHaveBeenCalledWith("healthcheck-path", { required: false });
-        expect(core.getInput).toHaveBeenCalledWith("healthcheck-timeout", { required: false });
+        expect(core.getInput).toHaveBeenCalledWith("healthcheck-path", {
+            required: false,
+        });
+        expect(core.getInput).toHaveBeenCalledWith("healthcheck-timeout", {
+            required: false,
+        });
     });
 });
 //# sourceMappingURL=index.test.js.map

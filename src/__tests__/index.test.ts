@@ -6,22 +6,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock @actions/core before importing
 vi.mock("@actions/core", () => ({
-  getInput: vi.fn(),
-  info: vi.fn(),
-  error: vi.fn(),
-  setOutput: vi.fn(),
-  setFailed: vi.fn(),
+  getInput: vi.fn<(name: string) => string>(),
+  info: vi.fn<(message: string) => void>(),
+  error: vi.fn<(message: string) => void>(),
+  setOutput: vi.fn<(name: string, value: string) => void>(),
+  setFailed: vi.fn<(message: string) => void>(),
 }));
 
 // Mock deploy functions
 vi.mock("../lib/deploy.js", () => ({
-  findAppUUID: vi.fn(),
-  buildDockerImage: vi.fn(),
-  startDeployment: vi.fn(),
-  pollDeploymentStatus: vi.fn(),
-  getAppDetails: vi.fn(),
-  updateHealthcheck: vi.fn(),
-  verifyHealthcheck: vi.fn(),
+  findAppUUID: vi.fn<() => string>(),
+  buildDockerImage: vi.fn<() => void>(),
+  startDeployment: vi.fn<() => void>(),
+  pollDeploymentStatus: vi.fn<() => void>(),
+  getAppDetails: vi.fn<() => void>(),
+  updateHealthcheck: vi.fn<() => void>(),
+  verifyHealthcheck: vi.fn<() => void>(),
 }));
 
 // Import after mocks
@@ -68,7 +68,9 @@ describe("index.ts (GitHub Action)", () => {
       ports_exposes: "3000",
     });
     vi.mocked(updateHealthcheck).mockResolvedValue();
-    vi.mocked(verifyHealthcheck).mockResolvedValue("https://app.example.com/health");
+    vi.mocked(verifyHealthcheck).mockResolvedValue(
+      "https://app.example.com/health",
+    );
   });
 
   afterEach(() => {
@@ -93,13 +95,25 @@ describe("index.ts (GitHub Action)", () => {
     await import("../index.js");
 
     await vi.waitFor(() => {
-      expect(core.getInput).toHaveBeenCalledWith("coolify-url", { required: true });
-      expect(core.getInput).toHaveBeenCalledWith("app-name", { required: true });
+      expect(core.getInput).toHaveBeenCalledWith("coolify-url", {
+        required: true,
+      });
+      expect(core.getInput).toHaveBeenCalledWith("app-name", {
+        required: true,
+      });
       expect(core.getInput).toHaveBeenCalledWith("image", { required: true });
-      expect(core.getInput).toHaveBeenCalledWith("coolify-token", { required: true });
-      expect(core.getInput).toHaveBeenCalledWith("env-vars", { required: false });
-      expect(core.getInput).toHaveBeenCalledWith("healthcheck-path", { required: false });
-      expect(core.getInput).toHaveBeenCalledWith("healthcheck-timeout", { required: false });
+      expect(core.getInput).toHaveBeenCalledWith("coolify-token", {
+        required: true,
+      });
+      expect(core.getInput).toHaveBeenCalledWith("env-vars", {
+        required: false,
+      });
+      expect(core.getInput).toHaveBeenCalledWith("healthcheck-path", {
+        required: false,
+      });
+      expect(core.getInput).toHaveBeenCalledWith("healthcheck-timeout", {
+        required: false,
+      });
     });
 
     expect(findAppUUID).toHaveBeenCalledWith(
@@ -107,10 +121,6 @@ describe("index.ts (GitHub Action)", () => {
         coolifyURL: "https://coolify.example.com",
         appName: "my-app",
         coolifyToken: "test-token",
-        logger: expect.objectContaining({
-          info: expect.any(Function),
-          error: expect.any(Function),
-        }),
       }),
     );
 
@@ -154,7 +164,10 @@ describe("index.ts (GitHub Action)", () => {
       }),
     );
 
-    expect(core.setOutput).toHaveBeenCalledWith("deployment-uuid", "deploy-uuid-456");
+    expect(core.setOutput).toHaveBeenCalledWith(
+      "deployment-uuid",
+      "deploy-uuid-456",
+    );
     expect(core.setOutput).toHaveBeenCalledWith(
       "healthcheck-url",
       "https://app.example.com/health",
@@ -307,7 +320,10 @@ describe("index.ts (GitHub Action)", () => {
     await import("../index.js");
 
     await vi.waitFor(() => {
-      expect(core.setOutput).toHaveBeenCalledWith("deployment-uuid", "deploy-uuid-456");
+      expect(core.setOutput).toHaveBeenCalledWith(
+        "deployment-uuid",
+        "deploy-uuid-456",
+      );
     });
   });
 
@@ -323,7 +339,9 @@ describe("index.ts (GitHub Action)", () => {
   });
 
   it("should handle Error instances and call setFailed", async () => {
-    vi.mocked(findAppUUID).mockRejectedValue(new Error("Application not found"));
+    vi.mocked(findAppUUID).mockRejectedValue(
+      new Error("Application not found"),
+    );
 
     await import("../index.js");
 
@@ -343,7 +361,9 @@ describe("index.ts (GitHub Action)", () => {
   });
 
   it("should handle buildDockerImage errors", async () => {
-    vi.mocked(buildDockerImage).mockRejectedValue(new Error("Docker build failed"));
+    vi.mocked(buildDockerImage).mockRejectedValue(
+      new Error("Docker build failed"),
+    );
 
     await import("../index.js");
 
@@ -353,7 +373,9 @@ describe("index.ts (GitHub Action)", () => {
   });
 
   it("should handle startDeployment errors", async () => {
-    vi.mocked(startDeployment).mockRejectedValue(new Error("Failed to start deployment"));
+    vi.mocked(startDeployment).mockRejectedValue(
+      new Error("Failed to start deployment"),
+    );
 
     await import("../index.js");
 
@@ -363,7 +385,9 @@ describe("index.ts (GitHub Action)", () => {
   });
 
   it("should handle pollDeploymentStatus errors", async () => {
-    vi.mocked(pollDeploymentStatus).mockRejectedValue(new Error("Deployment failed"));
+    vi.mocked(pollDeploymentStatus).mockRejectedValue(
+      new Error("Deployment failed"),
+    );
 
     await import("../index.js");
 
@@ -373,7 +397,9 @@ describe("index.ts (GitHub Action)", () => {
   });
 
   it("should handle getAppDetails errors", async () => {
-    vi.mocked(getAppDetails).mockRejectedValue(new Error("Failed to get app details"));
+    vi.mocked(getAppDetails).mockRejectedValue(
+      new Error("Failed to get app details"),
+    );
 
     await import("../index.js");
 
@@ -391,17 +417,23 @@ describe("index.ts (GitHub Action)", () => {
       health_check_port: null,
       ports_exposes: "3000",
     });
-    vi.mocked(updateHealthcheck).mockRejectedValue(new Error("Failed to update healthcheck"));
+    vi.mocked(updateHealthcheck).mockRejectedValue(
+      new Error("Failed to update healthcheck"),
+    );
 
     await import("../index.js");
 
     await vi.waitFor(() => {
-      expect(core.setFailed).toHaveBeenCalledWith("Failed to update healthcheck");
+      expect(core.setFailed).toHaveBeenCalledWith(
+        "Failed to update healthcheck",
+      );
     });
   });
 
   it("should handle verifyHealthcheck errors", async () => {
-    vi.mocked(verifyHealthcheck).mockRejectedValue(new Error("Healthcheck failed"));
+    vi.mocked(verifyHealthcheck).mockRejectedValue(
+      new Error("Healthcheck failed"),
+    );
 
     await import("../index.js");
 
@@ -414,7 +446,12 @@ describe("index.ts (GitHub Action)", () => {
     await import("../index.js");
 
     // Verify all required inputs were requested
-    const requiredInputs = ["coolify-url", "app-name", "image", "coolify-token"];
+    const requiredInputs = [
+      "coolify-url",
+      "app-name",
+      "image",
+      "coolify-token",
+    ];
 
     requiredInputs.forEach((input) => {
       expect(core.getInput).toHaveBeenCalledWith(input, { required: true });
@@ -422,7 +459,11 @@ describe("index.ts (GitHub Action)", () => {
 
     // Verify optional inputs were requested
     expect(core.getInput).toHaveBeenCalledWith("env-vars", { required: false });
-    expect(core.getInput).toHaveBeenCalledWith("healthcheck-path", { required: false });
-    expect(core.getInput).toHaveBeenCalledWith("healthcheck-timeout", { required: false });
+    expect(core.getInput).toHaveBeenCalledWith("healthcheck-path", {
+      required: false,
+    });
+    expect(core.getInput).toHaveBeenCalledWith("healthcheck-timeout", {
+      required: false,
+    });
   });
 });

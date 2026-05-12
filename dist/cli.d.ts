@@ -5,3 +5,4 @@
  * Can be used standalone or as a GitHub Action.
  */
 export {};
+//# sourceMappingURL=cli.d.ts.map

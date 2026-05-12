@@ -5,8 +5,8 @@
  * Can be used standalone or as a GitHub Action.
  */
 
-import { program } from "commander";
 import { existsSync, readFileSync } from "node:fs";
+import { program } from "commander";
 import {
   buildDockerImage,
   findAppUUID,
@@ -19,7 +19,7 @@ import {
 
 const logger = {
   info(message: string) {
-    console.log(message);
+    console.info(message);
   },
   error(message: string) {
     console.error(message);
@@ -29,12 +29,24 @@ const logger = {
 async function run(): Promise<void> {
   program
     .option("--coolify-url <url>", "Coolify instance URL (or COOLIFY_URL env)")
-    .option("--app-name <name>", "Application name in Coolify (or APP_NAME env)")
+    .option(
+      "--app-name <name>",
+      "Application name in Coolify (or APP_NAME env)",
+    )
     .option("--image <image>", "Docker image to deploy (or IMAGE env)")
-    .option("--coolify-token <token>", "Coolify API token (or COOLIFY_TOKEN env)")
+    .option(
+      "--coolify-token <token>",
+      "Coolify API token (or COOLIFY_TOKEN env)",
+    )
     .option("--coolify-token-file <file>", "File containing Coolify API token")
-    .option("--env-file <file>", "File containing environment variables for build")
-    .option("--healthcheck-path <path>", "Healthcheck path (or HEALTHCHECK_PATH env, default: /)")
+    .option(
+      "--env-file <file>",
+      "File containing environment variables for build",
+    )
+    .option(
+      "--healthcheck-path <path>",
+      "Healthcheck path (or HEALTHCHECK_PATH env, default: /)",
+    )
     .option(
       "--healthcheck-timeout <seconds>",
       "Healthcheck timeout in seconds (or HEALTHCHECK_TIMEOUT env, default: 60)",
@@ -42,12 +54,22 @@ async function run(): Promise<void> {
     .option("--context <path>", "Docker build context path (default: .)")
     .parse(process.argv);
 
-  const options = program.opts();
+  const options = program.opts<{
+    coolifyUrl: string | undefined;
+    appName: string | undefined;
+    image: string | undefined;
+    healthcheckPath: string | undefined;
+    healthcheckTimeout: string | undefined;
+    coolifyToken: string | undefined;
+    coolifyTokenFile: string | undefined;
+    envFile: string | undefined;
+  }>();
 
   const coolifyURL = options.coolifyUrl ?? process.env.COOLIFY_URL;
   const appName = options.appName ?? process.env.APP_NAME;
   const image = options.image ?? process.env.IMAGE;
-  const healthcheckPath = options.healthcheckPath ?? process.env.HEALTHCHECK_PATH ?? "/";
+  const healthcheckPath =
+    options.healthcheckPath ?? process.env.HEALTHCHECK_PATH ?? "/";
   const healthcheckTimeout = parseInt(
     options.healthcheckTimeout ?? process.env.HEALTHCHECK_TIMEOUT ?? "60",
     10,
@@ -68,7 +90,8 @@ async function run(): Promise<void> {
     if (!coolifyURL) logger.error("  --coolify-url or COOLIFY_URL");
     if (!appName) logger.error("  --app-name or APP_NAME");
     if (!image) logger.error("  --image or IMAGE");
-    if (!token) logger.error("  --coolify-token, COOLIFY_TOKEN, or --coolify-token-file");
+    if (!token)
+      logger.error("  --coolify-token, COOLIFY_TOKEN, or --coolify-token-file");
     process.exit(1);
   }
 
@@ -149,10 +172,11 @@ async function run(): Promise<void> {
     logger.info(`Deployment UUID: ${deploymentUUID}`);
     process.exit(0);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "An unknown error occurred";
+    const message =
+      error instanceof Error ? error.message : "An unknown error occurred";
     logger.error(message);
     process.exit(1);
   }
 }
 
-run();
+void run();

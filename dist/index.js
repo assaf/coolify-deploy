@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import './sourcemap-register.cjs';import { createRequire as __WEBPACK_EXTERNAL_createRequire } from "module";
 /******/ var __webpack_modules__ = ({
 
@@ -27672,14 +27673,16 @@ async function verifyHealthcheck({ fqdn, healthcheckPath, timeout, logger, }) {
 }
 
 ;// CONCATENATED MODULE: ./src/index.ts
+=======
+>>>>>>> 889c488 (Upgraded dependencies, added lint and format options)
 /**
  * GitHub Action for deploying Docker images to Coolify.
  *
  * This action builds and pushes a Docker image using buildx, then triggers
  * a deployment on a Coolify instance and monitors the deployment status.
  */
-
-
+import * as core from "@actions/core";
+import { buildDockerImage, findAppUUID, getAppDetails, pollDeploymentStatus, startDeployment, updateHealthcheck, verifyHealthcheck, } from "./lib/deploy.js";
 const logger = {
     info(message) {
         core.info(message);
@@ -27764,7 +27767,5 @@ async function run() {
             core.setFailed("An unknown error occurred");
     }
 }
-run();
-
-
+void run();
 //# sourceMappingURL=index.js.map

@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { spawn } from "node:child_process";
 import { writeFile, unlink } from "node:fs/promises";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { findAppUUID, buildDockerImage, startDeployment, pollDeploymentStatus, getAppDetails, updateHealthcheck, verifyHealthcheck, } from "../lib/deploy.js";
 vi.mock("node:child_process", () => ({
     spawn: vi.fn(),

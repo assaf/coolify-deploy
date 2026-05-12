@@ -5,3 +5,4 @@
  * a deployment on a Coolify instance and monitors the deployment status.
  */
 export {};
+//# sourceMappingURL=index.d.ts.map
