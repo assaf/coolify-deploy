@@ -3,16 +3,9 @@
  */
 
 import { spawn } from "node:child_process";
-<<<<<<< HEAD
 import fs from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
-=======
-import { randomBytes } from "node:crypto";
-import { writeFile, unlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { resolve } from "node:path";
->>>>>>> 889c488 (Upgraded dependencies, added lint and format options)
 
 const SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 
@@ -89,37 +82,12 @@ export async function buildDockerImage({
   ];
 
   if (hasEnvVars) {
-<<<<<<< HEAD
     secretFile = path.join(tmpdir(), `coolify-env-${Date.now()}`);
     fs.writeFileSync(secretFile, envVars);
     args.push("--secret", `id=env,src=${secretFile}`);
   }
 
   try {
-=======
-    envFile = resolve(
-      tmpdir(),
-      `.coolify-env-${randomBytes(8).toString("hex")}`,
-    );
-    await writeFile(envFile, envVars);
-  }
-
-  try {
-    const args = [
-      "buildx",
-      "build",
-      "--platform",
-      "linux/amd64",
-      "--push",
-      "-t",
-      image,
-    ];
-
-    if (envFile) args.push("--secret", `id=env,src=${envFile}`);
-
-    args.push(".");
-
->>>>>>> 889c488 (Upgraded dependencies, added lint and format options)
     await new Promise<void>((resolve, reject) => {
       const child = spawn("docker", args, {
         stdio: ["inherit", "inherit", "inherit"],
@@ -135,6 +103,8 @@ export async function buildDockerImage({
 
       child.on("error", reject);
     });
+
+    logger.info("Docker image built and pushed successfully");
   } finally {
     if (secretFile) {
       try {

@@ -63,6 +63,7 @@ async function run(): Promise<void> {
     coolifyToken: string | undefined;
     coolifyTokenFile: string | undefined;
     envFile: string | undefined;
+    context: string | undefined;
   }>();
 
   const coolifyURL = options.coolifyUrl ?? process.env.COOLIFY_URL;

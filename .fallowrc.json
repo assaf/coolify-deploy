@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "boundaries": {
+    "preset": "bulletproof",
+    "zones": [
+      {
+        "name": "test",
+        "patterns": ["src/__tests__/**"]
+      }
+    ],
+    "rules": [{ "from": "test", "allow": ["shared"] }]
+  },
+  "duplicates": {
+    "enabled": true,
+    "ignore": ["src/__tests__/**"]
+  },
+  "health": {
+    "ignore": ["src/__tests__/**"]
+  }
+}

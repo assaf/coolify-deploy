@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { writeFile, unlink } from "node:fs/promises";
+import { writeFileSync, unlinkSync } from "node:fs";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   findAppUUID,
@@ -15,10 +15,18 @@ vi.mock("node:child_process", () => ({
   spawn: vi.fn<typeof spawn>(),
 }));
 
-vi.mock("node:fs/promises", () => ({
-  writeFile: vi.fn<typeof writeFile>(),
-  unlink: vi.fn<typeof unlink>(),
-}));
+vi.mock("node:fs", () => {
+  const writeFileSyncMock = vi.fn<typeof writeFileSync>();
+  const unlinkSyncMock = vi.fn<typeof unlinkSync>();
+  return {
+    default: {
+      writeFileSync: writeFileSyncMock,
+      unlinkSync: unlinkSyncMock,
+    },
+    writeFileSync: writeFileSyncMock,
+    unlinkSync: unlinkSyncMock,
+  };
+});
 
 // Create a mock logger
 function createMockLogger() {
@@ -176,8 +184,8 @@ describe("deploy.ts", () => {
         ],
         { stdio: ["inherit", "inherit", "inherit"] },
       );
-      expect(writeFile).not.toHaveBeenCalled();
-      expect(unlink).not.toHaveBeenCalled();
+      expect(writeFileSync).not.toHaveBeenCalled();
+      expect(unlinkSync).not.toHaveBeenCalled();
       expect(mockLogger.info).toHaveBeenCalledWith("Building Docker image...");
       expect(mockLogger.info).toHaveBeenCalledWith(
         "Docker image built and pushed successfully",
@@ -196,8 +204,6 @@ describe("deploy.ts", () => {
       vi.mocked(spawn).mockReturnValue(
         mockChild as unknown as ReturnType<typeof spawn>,
       );
-      vi.mocked(writeFile).mockResolvedValue(undefined);
-      vi.mocked(unlink).mockResolvedValue(undefined);
 
       const envVars = "NODE_ENV=production\nAPI_KEY=secret";
 
@@ -208,9 +214,9 @@ describe("deploy.ts", () => {
         context: ".",
       });
 
-      expect(writeFile).toHaveBeenCalledTimes(1);
-      const writtenEnvFile = vi.mocked(writeFile).mock.calls[0][0];
-      expect(writeFile).toHaveBeenCalledWith(expect.any(String), envVars);
+      expect(writeFileSync).toHaveBeenCalledTimes(1);
+      const writtenEnvFile = vi.mocked(writeFileSync).mock.calls[0][0];
+      expect(writeFileSync).toHaveBeenCalledWith(expect.any(String), envVars);
 
       expect(spawn).toHaveBeenCalledWith(
         "docker",
@@ -222,14 +228,14 @@ describe("deploy.ts", () => {
           "--push",
           "-t",
           "ghcr.io/user/app:v1",
+          ".",
           "--secret",
           `id=env,src=${writtenEnvFile as string}`,
-          ".",
         ],
         { stdio: ["inherit", "inherit", "inherit"] },
       );
 
-      expect(unlink).toHaveBeenCalledWith(writtenEnvFile);
+      expect(unlinkSync).toHaveBeenCalledWith(writtenEnvFile);
     });
 
     it("should throw error when docker command fails", async () => {
@@ -306,7 +312,7 @@ describe("deploy.ts", () => {
       expect(
         (fetch as ReturnType<typeof vi.fn>).mock.calls[0][0].toString(),
       ).toBe(
-        "https://coolify.example.com/api/v1/deploy?type=application&uuid=app-uuid-1",
+        "https://coolify.example.com/api/v1/deploy?type=application&uuid=app-uuid-1&force=true",
       );
       expect(mockLogger.info).toHaveBeenCalledWith("Starting deployment...");
       expect(mockLogger.info).toHaveBeenCalledWith(
