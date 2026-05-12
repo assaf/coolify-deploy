@@ -6,15 +6,7 @@
  */
 
 import * as core from "@actions/core";
-import {
-  buildDockerImage,
-  findAppUUID,
-  getAppDetails,
-  pollDeploymentStatus,
-  startDeployment,
-  updateHealthcheck,
-  verifyHealthcheck,
-} from "./lib/deploy.js";
+import { deployApplication } from "./lib/deploy.js";
 
 const logger = {
   info(message: string) {
@@ -43,71 +35,19 @@ async function run(): Promise<void> {
     );
     const context = core.getInput("context", { required: false }) || ".";
 
-    logger.info(`Deploying ${image} to ${appName} at ${coolifyURL}`);
-
-    const appUUID = await findAppUUID({
+    const { deploymentUUID, healthcheckUrl } = await deployApplication({
       coolifyURL,
       appName,
-      coolifyToken: token,
-      logger,
-    });
-
-    await buildDockerImage({
       image,
-      envVars,
-      logger,
-      context,
-    });
-
-    const deploymentUUID = await startDeployment({
-      appUUID,
       coolifyToken: token,
-      coolifyURL,
+      envVars,
+      healthcheckPath,
+      healthcheckTimeout,
+      context,
       logger,
     });
 
     core.setOutput("deployment-uuid", deploymentUUID);
-
-    await pollDeploymentStatus({
-      deploymentUUID,
-      coolifyToken: token,
-      coolifyURL,
-      timeout: 600,
-      logger,
-    });
-
-    // Fetch app details and configure/update healthcheck
-    const appDetails = await getAppDetails({
-      appUUID,
-      coolifyToken: token,
-      coolifyURL,
-      logger,
-    });
-
-    let activeHealthcheckPath = healthcheckPath;
-
-    // Update healthcheck configuration (idempotent PATCH)
-    await updateHealthcheck({
-      appUUID,
-      coolifyToken: token,
-      coolifyURL,
-      healthcheckPath,
-      logger,
-    });
-
-    // Use existing healthcheck path if no custom path provided
-    if (appDetails.health_check_enabled && healthcheckPath === "/") {
-      activeHealthcheckPath = appDetails.health_check_path || "/";
-    }
-
-    // Verify healthcheck
-    const healthcheckUrl = await verifyHealthcheck({
-      fqdn: appDetails.fqdn,
-      healthcheckPath: activeHealthcheckPath,
-      timeout: healthcheckTimeout,
-      logger,
-    });
-
     core.setOutput("healthcheck-url", healthcheckUrl);
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message);

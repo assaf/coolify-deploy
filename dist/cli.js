@@ -6,7 +6,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { program } from "commander";
-import { buildDockerImage, findAppUUID, getAppDetails, pollDeploymentStatus, startDeployment, updateHealthcheck, verifyHealthcheck, } from "./lib/deploy.js";
+import { deployApplication } from "./lib/deploy.js";
 const logger = {
     info(message) {
         console.info(message);
@@ -63,56 +63,15 @@ async function run() {
         envVars = readFileSync(options.envFile, "utf-8");
     }
     try {
-        logger.info(`Deploying ${image} to ${appName} at ${coolifyURL}`);
-        const appUUID = await findAppUUID({
+        const { deploymentUUID } = await deployApplication({
             coolifyURL,
             appName,
-            coolifyToken: token,
-            logger,
-        });
-        await buildDockerImage({
             image,
+            coolifyToken: token,
             envVars,
-            logger,
-            context,
-        });
-        const deploymentUUID = await startDeployment({
-            appUUID,
-            coolifyToken: token,
-            coolifyURL,
-            logger,
-        });
-        await pollDeploymentStatus({
-            deploymentUUID,
-            coolifyToken: token,
-            coolifyURL,
-            timeout: 600,
-            logger,
-        });
-        // Fetch app details and configure/update healthcheck
-        const appDetails = await getAppDetails({
-            appUUID,
-            coolifyToken: token,
-            coolifyURL,
-            logger,
-        });
-        let activeHealthcheckPath = healthcheckPath;
-        // Update healthcheck configuration (idempotent PATCH)
-        await updateHealthcheck({
-            appUUID,
-            coolifyToken: token,
-            coolifyURL,
             healthcheckPath,
-            logger,
-        });
-        // Use existing healthcheck path if no custom path provided
-        if (appDetails.health_check_enabled && healthcheckPath === "/")
-            activeHealthcheckPath = appDetails.health_check_path || "/";
-        // Verify healthcheck
-        await verifyHealthcheck({
-            fqdn: appDetails.fqdn,
-            healthcheckPath: activeHealthcheckPath,
-            timeout: healthcheckTimeout,
+            healthcheckTimeout,
+            context,
             logger,
         });
         logger.info(`Deployment UUID: ${deploymentUUID}`);

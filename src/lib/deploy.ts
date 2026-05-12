@@ -9,9 +9,26 @@ import { tmpdir } from "node:os";
 
 const SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 
-interface Logger {
+export interface Logger {
   info(message: string): void;
   error(message: string): void;
+}
+
+export interface DeployApplicationParams {
+  coolifyURL: string;
+  appName: string;
+  image: string;
+  coolifyToken: string;
+  envVars?: string;
+  healthcheckPath?: string;
+  healthcheckTimeout?: number;
+  context?: string;
+  logger: Logger;
+}
+
+export interface DeployApplicationResult {
+  deploymentUUID: string;
+  healthcheckUrl: string;
 }
 
 /**
@@ -373,4 +390,52 @@ export async function verifyHealthcheck({
 
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
+}
+
+/**
+ * Runs the complete deployment pipeline: find app, build image, deploy, healthcheck.
+ */
+export async function deployApplication(
+  params: DeployApplicationParams,
+): Promise<DeployApplicationResult> {
+  const {
+    coolifyURL,
+    appName,
+    image,
+    coolifyToken,
+    envVars,
+    healthcheckPath = "/",
+    healthcheckTimeout = 60,
+    context = ".",
+    logger,
+  } = params;
+
+  logger.info(`Deploying ${image} to ${appName} at ${coolifyURL}`);
+
+  const appUUID = await findAppUUID({ coolifyURL, appName, coolifyToken, logger });
+
+  await buildDockerImage({ image, envVars, logger, context });
+
+  const deploymentUUID = await startDeployment({ appUUID, coolifyToken, coolifyURL, logger });
+
+  await pollDeploymentStatus({ deploymentUUID, coolifyToken, coolifyURL, timeout: 600, logger });
+
+  const appDetails = await getAppDetails({ appUUID, coolifyToken, coolifyURL, logger });
+
+  let activeHealthcheckPath = healthcheckPath;
+
+  await updateHealthcheck({ appUUID, coolifyToken, coolifyURL, healthcheckPath, logger });
+
+  if (appDetails.health_check_enabled && healthcheckPath === "/") {
+    activeHealthcheckPath = appDetails.health_check_path || "/";
+  }
+
+  const healthcheckUrl = await verifyHealthcheck({
+    fqdn: appDetails.fqdn,
+    healthcheckPath: activeHealthcheckPath,
+    timeout: healthcheckTimeout,
+    logger,
+  });
+
+  return { deploymentUUID, healthcheckUrl };
 }

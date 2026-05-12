@@ -2,16 +2,9 @@
  * Shared deploy logic for GitHub Action and CLI.
  */
 import { spawn } from "node:child_process";
-<<<<<<< HEAD
 import fs from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
-=======
-import { randomBytes } from "node:crypto";
-import { writeFile, unlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { resolve } from "node:path";
->>>>>>> 889c488 (Upgraded dependencies, added lint and format options)
 const SPINNER_CHARS = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
 /**
  * Finds the application UUID for the given Coolify application name.
@@ -55,21 +48,6 @@ export async function buildDockerImage({ image, envVars, logger, context, }) {
         args.push("--secret", `id=env,src=${secretFile}`);
     }
     try {
-<<<<<<< HEAD
-=======
-        const args = [
-            "buildx",
-            "build",
-            "--platform",
-            "linux/amd64",
-            "--push",
-            "-t",
-            image,
-        ];
-        if (envFile)
-            args.push("--secret", `id=env,src=${envFile}`);
-        args.push(".");
->>>>>>> 889c488 (Upgraded dependencies, added lint and format options)
         await new Promise((resolve, reject) => {
             const child = spawn("docker", args, {
                 stdio: ["inherit", "inherit", "inherit"],
@@ -84,6 +62,7 @@ export async function buildDockerImage({ image, envVars, logger, context, }) {
             });
             child.on("error", reject);
         });
+        logger.info("Docker image built and pushed successfully");
     }
     finally {
         if (secretFile) {
@@ -222,5 +201,29 @@ export async function verifyHealthcheck({ fqdn, healthcheckPath, timeout, logger
         }
         await new Promise((resolve) => setTimeout(resolve, 3000));
     }
+}
+/**
+ * Runs the complete deployment pipeline: find app, build image, deploy, healthcheck.
+ */
+export async function deployApplication(params) {
+    const { coolifyURL, appName, image, coolifyToken, envVars, healthcheckPath = "/", healthcheckTimeout = 60, context = ".", logger, } = params;
+    logger.info(`Deploying ${image} to ${appName} at ${coolifyURL}`);
+    const appUUID = await findAppUUID({ coolifyURL, appName, coolifyToken, logger });
+    await buildDockerImage({ image, envVars, logger, context });
+    const deploymentUUID = await startDeployment({ appUUID, coolifyToken, coolifyURL, logger });
+    await pollDeploymentStatus({ deploymentUUID, coolifyToken, coolifyURL, timeout: 600, logger });
+    const appDetails = await getAppDetails({ appUUID, coolifyToken, coolifyURL, logger });
+    let activeHealthcheckPath = healthcheckPath;
+    await updateHealthcheck({ appUUID, coolifyToken, coolifyURL, healthcheckPath, logger });
+    if (appDetails.health_check_enabled && healthcheckPath === "/") {
+        activeHealthcheckPath = appDetails.health_check_path || "/";
+    }
+    const healthcheckUrl = await verifyHealthcheck({
+        fqdn: appDetails.fqdn,
+        healthcheckPath: activeHealthcheckPath,
+        timeout: healthcheckTimeout,
+        logger,
+    });
+    return { deploymentUUID, healthcheckUrl };
 }
 //# sourceMappingURL=deploy.js.map

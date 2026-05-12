@@ -1,9 +1,24 @@
 /**
  * Shared deploy logic for GitHub Action and CLI.
  */
-interface Logger {
+export interface Logger {
     info(message: string): void;
     error(message: string): void;
+}
+export interface DeployApplicationParams {
+    coolifyURL: string;
+    appName: string;
+    image: string;
+    coolifyToken: string;
+    envVars?: string;
+    healthcheckPath?: string;
+    healthcheckTimeout?: number;
+    context?: string;
+    logger: Logger;
+}
+export interface DeployApplicationResult {
+    deploymentUUID: string;
+    healthcheckUrl: string;
 }
 /**
  * Finds the application UUID for the given Coolify application name.
@@ -80,5 +95,9 @@ export declare function verifyHealthcheck({ fqdn, healthcheckPath, timeout, logg
     timeout: number;
     logger: Logger;
 }): Promise<string>;
+/**
+ * Runs the complete deployment pipeline: find app, build image, deploy, healthcheck.
+ */
+export declare function deployApplication(params: DeployApplicationParams): Promise<DeployApplicationResult>;
 export {};
 //# sourceMappingURL=deploy.d.ts.map
