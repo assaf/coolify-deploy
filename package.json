@@ -33,14 +33,14 @@
     "commander": "^14.0.3"
   },
   "devDependencies": {
-    "@types/node": "^25.6.2",
+    "@types/node": "^25.7.0",
     "@vercel/ncc": "^0.38.4",
-    "@vitest/coverage-v8": "^4.1.5",
-    "knip": "^6.12.2",
-    "oxfmt": "^0.48.0",
-    "oxlint": "^1.63.0",
+    "@vitest/coverage-v8": "^4.1.6",
+    "knip": "^6.13.1",
+    "oxfmt": "^0.49.0",
+    "oxlint": "^1.64.0",
     "oxlint-tsgolint": "^0.22.1",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.6"
   }
 }
