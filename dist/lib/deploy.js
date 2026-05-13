@@ -65,14 +65,8 @@ export async function buildDockerImage({ image, envVars, logger, context, }) {
         logger.info("Docker image built and pushed successfully");
     }
     finally {
-        if (secretFile) {
-            try {
-                fs.unlinkSync(secretFile);
-            }
-            catch {
-                // ignore cleanup errors
-            }
-        }
+        if (secretFile)
+            fs.unlinkSync(secretFile);
     }
 }
 /**
@@ -171,34 +165,27 @@ export async function updateHealthcheck({ appUUID, coolifyToken, coolifyURL, hea
  * Polls the healthcheck endpoint until it returns success or times out.
  */
 export async function verifyHealthcheck({ fqdn, healthcheckPath, timeout, logger, }) {
-    const protocol = fqdn.startsWith("http://") || fqdn.startsWith("https://") ? "" : "https://";
-    const healthcheckUrl = `${protocol}${fqdn}${healthcheckPath}`;
+    const healthcheckUrl = new URL(healthcheckPath, /^https?:/.test(fqdn) ? fqdn : `https://${fqdn}`).toString();
     logger.info(`Verifying healthcheck at ${healthcheckUrl}`);
     const startTime = Date.now();
     const timeoutMs = timeout * 1000;
     while (true) {
+        const elapsed = Date.now() - startTime;
+        const spinnerIndex = Math.floor((elapsed / 100) % SPINNER_CHARS.length);
         try {
             const response = await fetch(healthcheckUrl);
             if (response.ok) {
                 logger.info(`✓ Healthcheck passed: ${response.status} ${response.statusText}`);
                 return healthcheckUrl;
             }
-            const elapsed = Date.now() - startTime;
-            if (elapsed >= timeoutMs)
-                throw new Error(`Healthcheck timed out after ${timeout} seconds: ${response.status} ${response.statusText}`);
-            const spinnerIndex = Math.floor((elapsed / 100) % SPINNER_CHARS.length);
             logger.info(`${SPINNER_CHARS[spinnerIndex]} Waiting for healthcheck... Status: ${response.status}`);
         }
         catch (error) {
-            const elapsed = Date.now() - startTime;
-            if (elapsed >= timeoutMs) {
-                const message = error instanceof Error ? error.message : "Unknown error";
-                throw new Error(`Healthcheck timed out after ${timeout} seconds: ${message}`);
-            }
-            const spinnerIndex = Math.floor((elapsed / 100) % SPINNER_CHARS.length);
-            const message = error instanceof Error ? error.message : "Connection failed";
+            const message = error instanceof Error ? error.message : String(error);
             logger.info(`${SPINNER_CHARS[spinnerIndex]} Waiting for healthcheck... ${message}`);
         }
+        if (elapsed >= timeoutMs)
+            throw new Error(`Healthcheck timed out after ${timeout} seconds`);
         await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 }
@@ -208,19 +195,42 @@ export async function verifyHealthcheck({ fqdn, healthcheckPath, timeout, logger
 export async function deployApplication(params) {
     const { coolifyURL, appName, image, coolifyToken, envVars, healthcheckPath = "/", healthcheckTimeout = 60, context = ".", logger, } = params;
     logger.info(`Deploying ${image} to ${appName} at ${coolifyURL}`);
-    const appUUID = await findAppUUID({ coolifyURL, appName, coolifyToken, logger });
+    const appUUID = await findAppUUID({
+        coolifyURL,
+        appName,
+        coolifyToken,
+        logger,
+    });
     await buildDockerImage({ image, envVars, logger, context });
-    const deploymentUUID = await startDeployment({ appUUID, coolifyToken, coolifyURL, logger });
-    await pollDeploymentStatus({ deploymentUUID, coolifyToken, coolifyURL, timeout: 600, logger });
-    const appDetails = await getAppDetails({ appUUID, coolifyToken, coolifyURL, logger });
-    let activeHealthcheckPath = healthcheckPath;
-    await updateHealthcheck({ appUUID, coolifyToken, coolifyURL, healthcheckPath, logger });
-    if (appDetails.health_check_enabled && healthcheckPath === "/") {
-        activeHealthcheckPath = appDetails.health_check_path || "/";
-    }
+    const deploymentUUID = await startDeployment({
+        appUUID,
+        coolifyToken,
+        coolifyURL,
+        logger,
+    });
+    await pollDeploymentStatus({
+        deploymentUUID,
+        coolifyToken,
+        coolifyURL,
+        timeout: 600,
+        logger,
+    });
+    const appDetails = await getAppDetails({
+        appUUID,
+        coolifyToken,
+        coolifyURL,
+        logger,
+    });
+    await updateHealthcheck({
+        appUUID,
+        coolifyToken,
+        coolifyURL,
+        healthcheckPath,
+        logger,
+    });
     const healthcheckUrl = await verifyHealthcheck({
         fqdn: appDetails.fqdn,
-        healthcheckPath: activeHealthcheckPath,
+        healthcheckPath: appDetails.health_check_path || "/",
         timeout: healthcheckTimeout,
         logger,
     });
