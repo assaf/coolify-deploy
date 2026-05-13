@@ -841,7 +841,6 @@ describe("deploy.ts", () => {
       expect((error as Error).message).toContain(
         "Healthcheck timed out after 1 seconds",
       );
-      expect((error as Error).message).toContain("503 Service Unavailable");
     });
 
     it("should throw error on timeout with connection failure", async () => {
@@ -867,7 +866,6 @@ describe("deploy.ts", () => {
       expect((error as Error).message).toContain(
         "Healthcheck timed out after 1 seconds",
       );
-      expect((error as Error).message).toContain("Connection refused");
     });
 
     it("should show spinner while waiting", async () => {

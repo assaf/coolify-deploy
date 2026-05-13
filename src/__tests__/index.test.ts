@@ -15,9 +15,8 @@ vi.mock("@actions/core", () => ({
 
 // Mock deploy functions
 vi.mock("../lib/deploy.js", () => ({
-  deployApplication: vi.fn<
-    () => Promise<{ deploymentUUID: string; healthcheckUrl: string }>
-  >(),
+  deployApplication:
+    vi.fn<() => Promise<{ deploymentUUID: string; healthcheckUrl: string }>>(),
 }));
 
 // Import after mocks
@@ -101,10 +100,11 @@ describe("index.ts (GitHub Action)", () => {
       healthcheckPath: "/",
       healthcheckTimeout: 60,
       context: ".",
-      logger: expect.objectContaining({
+      logger: {
+        // oxlint-disable no-unsafe-assignment
         info: expect.any(Function),
         error: expect.any(Function),
-      }),
+      },
     });
 
     expect(core.setOutput).toHaveBeenCalledWith(
