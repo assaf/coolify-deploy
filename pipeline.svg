@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 140" width="960" height="140">
+  <defs>
+    <style>
+      .box   { fill: #1e1e2e; stroke: #45475a; stroke-width: 1.5; rx: 6; }
+      .label { fill: #cdd6f4; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif; font-size: 12px; font-weight: 600; text-anchor: middle; }
+      .label-small { fill: #a6adc8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif; font-size: 9px; font-weight: 500; text-anchor: middle; }
+      .arrow { stroke: #585b70; stroke-width: 2; stroke-linecap: round; marker-end: url(#arrowhead); }
+      .icon-line { stroke: #89b4fa; stroke-width: 2; stroke-linecap: round; }
+      .icon-fill { fill: none; stroke: #a6e3a1; stroke-width: 2; stroke-linecap: round; }
+      .icon-fill-blue { fill: none; stroke: #89b4fa; stroke-width: 2; stroke-linecap: round; }
+      .icon-fill-yellow { fill: none; stroke: #f9e2af; stroke-width: 2; stroke-linecap: round; }
+      .icon-circle { fill: none; stroke: #cba6f7; stroke-width: 2; }
+    </style>
+    <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#585b70" />
+    </marker>
+  </defs>
+
+  <!-- Background (optional, for dark-mode preview) -->
+  <rect width="960" height="140" fill="#11111b" rx="8" />
+
+  <!-- Box dimensions: 110 x 80, spaced equally across 960px -->
+
+  <!-- === 1. git push === -->
+  <g transform="translate(30, 30)">
+    <rect class="box" width="110" height="80" rx="8" />
+    <!-- Git branch icon -->
+    <g transform="translate(55, 22)">
+      <circle class="icon-circle" cx="0" cy="0" r="6"/>
+      <circle class="icon-circle" cx="0" cy="10" r="6"/>
+      <line class="icon-line" x1="0" y1="6" x2="0" y2="4"/>
+      <line class="icon-line" x1="0" y1="4" x2="-7" y2="-2"/>
+      <line class="icon-line" x1="0" y1="4" x2="5" y2="-1"/>
+    </g>
+    <text class="label" x="55" y="55">git push</text>
+    <text class="label-small" x="55" y="68">trigger</text>
+  </g>
+
+  <line class="arrow" x1="145" y1="70" x2="177" y2="70" />
+
+  <!-- === 2. Docker buildx === -->
+  <g transform="translate(185, 30)">
+    <rect class="box" width="110" height="80" rx="8" />
+    <!-- Docker whale icon -->
+    <g transform="translate(55, 22)">
+      <rect class="icon-fill-blue" x="-10" y="-4" width="20" height="8" rx="2"/>
+      <path class="icon-fill-blue" d="M-12,4 L-12,-4 L-10,-6 L10,-6 L12,-4 L12,4 Z" fill="none"/>
+      <circle class="icon-fill-blue" cx="-8" cy="-3" r="1.5"/>
+      <circle class="icon-fill-blue" cx="0" cy="-3" r="1.5"/>
+      <circle class="icon-fill-blue" cx="8" cy="-3" r="1.5"/>
+    </g>
+    <text class="label" x="55" y="55">Docker</text>
+    <text class="label-small" x="55" y="68">buildx</text>
+  </g>
+
+  <line class="arrow" x1="300" y1="70" x2="332" y2="70" />
+
+  <!-- === 3. GHCR === -->
+  <g transform="translate(340, 30)">
+    <rect class="box" width="110" height="80" rx="8" />
+    <!-- Package/registry icon -->
+    <g transform="translate(55, 22)">
+      <rect class="icon-fill-blue" x="-9" y="-8" width="18" height="16" rx="3"/>
+      <line class="icon-line" x1="-6" y1="-2" x2="6" y2="-2"/>
+      <line class="icon-line" x1="-6" y1="2" x2="6" y2="2"/>
+      <line class="icon-line" x1="-4" y1="6" x2="4" y2="6"/>
+      <rect class="icon-fill-blue" x="-5" y="8" width="10" height="4" rx="1"/>
+    </g>
+    <text class="label" x="55" y="55">GHCR</text>
+    <text class="label-small" x="55" y="68">registry</text>
+  </g>
+
+  <line class="arrow" x1="455" y1="70" x2="487" y2="70" />
+
+  <!-- === 4. Coolify API === -->
+  <g transform="translate(495, 30)">
+    <rect class="box" width="110" height="80" rx="8" />
+    <!-- Coolify-style icon (overlapping rounded squares) -->
+    <g transform="translate(55, 22)">
+      <rect x="-8" y="-8" width="16" height="16" rx="4" fill="none" stroke="#cba6f7" stroke-width="2"/>
+      <rect x="-3" y="-3" width="12" height="12" rx="3" fill="none" stroke="#f5c2e7" stroke-width="2"/>
+      <line class="icon-line" x1="0" y1="1" x2="4" y2="5" stroke="#a6e3a1"/>
+      <line class="icon-line" x1="0" y1="1" x2="-4" y2="5" stroke="#a6e3a1"/>
+    </g>
+    <text class="label" x="55" y="55">Coolify</text>
+    <text class="label-small" x="55" y="68">API</text>
+  </g>
+
+  <line class="arrow" x1="610" y1="70" x2="642" y2="70" />
+
+  <!-- === 5. Hetzner === -->
+  <g transform="translate(650, 30)">
+    <rect class="box" width="110" height="80" rx="8" />
+    <!-- Server rack icon -->
+    <g transform="translate(55, 22)">
+      <rect class="icon-fill-yellow" x="-11" y="-9" width="22" height="22" rx="2"/>
+      <line class="icon-line" x1="-7" y1="-4" x2="7" y2="-4" stroke="#f9e2af"/>
+      <line class="icon-line" x1="-7" y1="1" x2="7" y2="1" stroke="#f9e2af"/>
+      <line class="icon-line" x1="-7" y1="6" x2="7" y2="6" stroke="#f9e2af"/>
+      <circle cx="-3" cy="-4" r="1.5" fill="#a6e3a1"/>
+      <circle cx="-3" cy="1" r="1.5" fill="#a6e3a1"/>
+    </g>
+    <text class="label" x="55" y="55">Hetzner</text>
+    <text class="label-small" x="55" y="68">server</text>
+  </g>
+
+  <line class="arrow" x1="765" y1="70" x2="797" y2="70" />
+
+  <!-- === 6. Healthcheck === -->
+  <g transform="translate(805, 30)">
+    <rect class="box" width="110" height="80" rx="8" />
+    <!-- Green checkmark ✓ -->
+    <g transform="translate(55, 22)">
+      <circle cx="0" cy="0" r="12" fill="#1e1e2e" stroke="#a6e3a1" stroke-width="2"/>
+      <polyline points="-5,0 -1,5 7,-5" fill="none" stroke="#a6e3a1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text class="label" x="55" y="55">Health</text>
+    <text class="label-small" x="55" y="68">check ✓</text>
+  </g>
+</svg>
